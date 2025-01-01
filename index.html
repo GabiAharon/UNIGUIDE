@@ -747,6 +747,13 @@
         <div class="nav-section">
             <h3>תוכן עניינים</h3>
             <ul>
+                <li><a href="#faq" onclick="openFAQSection(event)">שאלות נפוצות</a>
+                    <ul>
+                        <li><a href="#faq-operations">תפעול</a></li>
+                        <li><a href="#faq-training">הכשרות והקלטות</a></li>
+                        <li><a href="#faq-salesforce">Salesforce</a></li>
+                    </ul>
+                </li>
                 <li><a href="#programs">תכניות</a>
                     <ul>
                         <li><a href="#edventure">Edventure</a></li>
@@ -837,7 +844,7 @@
                 <!-- Collapsible FAQ Section with updated styling -->
                 <div class="collapsible-section faq-main-section">
                     <button class="collapsible-button" onclick="toggleSection('faq-main')">
-                        <h2 id="faq" class="faq-title">שאלות ותשובות נפוצות</h2>
+                        <h2 id="faq" class="faq-title">שאלות נפוצות</h2>
                         <span class="arrow">▼</span>
                     </button>
                     <div id="faq-main" class="collapsible-content" style="display: none;">
@@ -1470,6 +1477,15 @@
                 </div>
 
                 <script>
+                    function openFAQSection(event) {
+                        event.preventDefault();
+                        const faqMain = document.getElementById('faq-main');
+                        if (faqMain.style.display === "none") {
+                            toggleSection('faq-main');
+                        }
+                        document.getElementById('faq').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+
                     function toggleSection(sectionId) {
                         var content = document.getElementById(sectionId);
                         if (content.style.display === "none") {
