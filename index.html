@@ -747,7 +747,7 @@
         <div class="nav-section">
             <h3>תוכן עניינים</h3>
             <ul>
-                <li><a href="#faq" onclick="openFAQSection(event)">שאלות נפוצות</a>
+                <li><a href="#faq">שאלות נפוצות</a>
                     <ul>
                         <li><a href="#faq-operations">תפעול</a></li>
                         <li><a href="#faq-training">הכשרות והקלטות</a></li>
@@ -1477,15 +1477,6 @@
                 </div>
 
                 <script>
-                    function openFAQSection(event) {
-                        event.preventDefault();
-                        const faqMain = document.getElementById('faq-main');
-                        if (faqMain.style.display === "none") {
-                            toggleSection('faq-main');
-                        }
-                        document.getElementById('faq').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-
                     function toggleSection(sectionId) {
                         var content = document.getElementById(sectionId);
                         if (content.style.display === "none") {
