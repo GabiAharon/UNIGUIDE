@@ -45,31 +45,55 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
 
     // Extract all dictionary items (programs, systems, etc.)
     const allDictionaryItems = doc.querySelectorAll('.dictionary-item')
+    console.log(`Found ${allDictionaryItems.length} dictionary items`)
+    
     allDictionaryItems.forEach((item, index) => {
       const titleEl = item.querySelector('.term')
       const descEl = item.querySelector('.definition')
+      
+      // If no .term/.definition, try to extract from the content directly
+      let title = ''
+      let description = ''
+      
       if (titleEl && descEl) {
+        title = titleEl.textContent?.trim() || ''
+        description = descEl.textContent?.trim() || descEl.innerHTML?.trim() || ''
+      } else {
+        // Fallback: extract from the whole content
+        const fullText = item.textContent?.trim() || ''
+        const lines = fullText.split('\n').filter(line => line.trim())
+        title = lines[0] || `פריט ${index + 1}`
+        description = lines.slice(1).join(' ').trim() || 'ללא תיאור'
+      }
+      
+      if (title) {
         // Determine type based on ID or context
         let type: ContentItem['type'] = 'program'
         let category = 'תכניות'
         
-        const itemId = item.id || item.getAttribute('id') || ''
-        if (itemId.includes('system') || itemId.includes('salesforce') || itemId.includes('uninet') || itemId.includes('sharepoint')) {
+        const itemId = item.id || item.getAttribute('id') || `item-${index}`
+        const idLower = itemId.toLowerCase()
+        const titleLower = title.toLowerCase()
+        
+        if (idLower.includes('salesforce') || idLower.includes('uninet') || idLower.includes('sharepoint') || 
+            titleLower.includes('salesforce') || titleLower.includes('uninet') || titleLower.includes('sharepoint')) {
           type = 'system'
           category = 'מערכות'
-        } else if (itemId.includes('event')) {
-          type = 'event'
-          category = 'אירועים'
-        } else if (itemId.includes('document')) {
+        } else if (idLower.includes('student') || idLower.includes('health') || idLower.includes('charter') ||
+                   titleLower.includes('אמנת') || titleLower.includes('הצהרת') || titleLower.includes('טופס')) {
           type = 'document'
           category = 'מסמכים'
+        } else if (idLower.includes('mentor') || idLower.includes('fellow') || idLower.includes('training') ||
+                   titleLower.includes('מנטור') || titleLower.includes('הכשרה') || titleLower.includes('הדרכה')) {
+          type = 'event'
+          category = 'הכשרות ואירועים'
         }
 
         items.push({
-          id: itemId || `item-${index}`,
+          id: itemId,
           type,
-          title: titleEl.textContent?.trim() || '',
-          description: descEl.textContent?.trim() || descEl.innerHTML?.trim() || '',
+          title,
+          description: description.substring(0, 300) + (description.length > 300 ? '...' : ''),
           category
         })
       }
@@ -77,41 +101,50 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
 
     // Extract FAQ items
     const faqItems = doc.querySelectorAll('.faq-card')
+    console.log(`Found ${faqItems.length} FAQ items`)
+    
     faqItems.forEach((item, index) => {
       const questionEl = item.querySelector('.faq-question')
       const answerEl = item.querySelector('.faq-answer')
+      
+      let question = ''
+      let answer = ''
+      
       if (questionEl && answerEl) {
+        question = questionEl.textContent?.trim() || ''
+        answer = answerEl.textContent?.trim() || answerEl.innerHTML?.trim() || ''
+      } else {
+        // Fallback: try to extract from the whole content
+        const fullText = item.textContent?.trim() || ''
+        const parts = fullText.split('\n').filter(part => part.trim())
+        question = parts[0] || `שאלה ${index + 1}`
+        answer = parts.slice(1).join(' ').trim() || 'ללא תשובה'
+      }
+      
+      if (question) {
         items.push({
           id: `faq-${index}`,
           type: 'faq',
-          title: questionEl.textContent?.trim() || '',
-          description: answerEl.textContent?.trim() || answerEl.innerHTML?.trim() || '',
+          title: question,
+          description: answer.substring(0, 300) + (answer.length > 300 ? '...' : ''),
           category: 'שאלות נפוצות'
         })
       }
     })
 
-    // Extract sections with headers (h2, h3, etc.)
-    const headers = doc.querySelectorAll('h2, h3, h4')
+    // Extract headers as editable items
+    const headers = doc.querySelectorAll('h1, h2, h3, h4, h5, h6')
+    console.log(`Found ${headers.length} headers`)
+    
     headers.forEach((header, index) => {
       const headerText = header.textContent?.trim() || ''
       const headerId = header.id || `header-${index}`
       
-      // Get content after header until next header
-      let content = ''
-      let nextElement = header.nextElementSibling
-      while (nextElement && !nextElement.matches('h1, h2, h3, h4, h5, h6')) {
-        if (nextElement.textContent?.trim()) {
-          content += nextElement.textContent.trim() + ' '
-        }
-        nextElement = nextElement.nextElementSibling
-      }
-
-      if (headerText && content.trim()) {
-        // Determine category based on header text
-        let category = 'כללי'
+      if (headerText && headerText.length > 2) { // Skip very short headers
+        let category = 'כותרות וחלקים'
         let type: ContentItem['type'] = 'document'
         
+        // Determine category based on header text
         if (headerText.includes('תכנית') || headerText.includes('תכניות')) {
           category = 'תכניות'
           type = 'program'
@@ -121,19 +154,20 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         } else if (headerText.includes('מערכת') || headerText.includes('מערכות')) {
           category = 'מערכות'
           type = 'system'
-        } else if (headerText.includes('אירוע') || headerText.includes('אירועים')) {
+        } else if (headerText.includes('אירוע') || headerText.includes('אירועים') || 
+                   headerText.includes('הכשרה') || headerText.includes('הדרכה')) {
           category = 'אירועים'
           type = 'event'
         }
 
-        // Don't add if we already have this as a dictionary item
+        // Don't add if we already have this exact title
         const existingItem = items.find(item => item.title === headerText)
         if (!existingItem) {
           items.push({
             id: headerId,
             type,
             title: headerText,
-            description: content.trim().substring(0, 500) + (content.length > 500 ? '...' : ''),
+            description: `כותרת מסוג ${header.tagName}`,
             category
           })
         }
@@ -142,37 +176,32 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
 
     // Extract quiz questions if this is quiz.html
     if (htmlContent.includes('const questions = [')) {
+      console.log('Parsing quiz questions...')
       const scriptMatch = htmlContent.match(/const questions = \[([\s\S]*?)\];/)
       if (scriptMatch) {
         try {
-          // Parse individual question objects
+          // More robust parsing of questions
           const questionsText = scriptMatch[1]
-          const questionObjects = questionsText.split('},').map(q => q.trim() + '}')
           
-          questionObjects.forEach((questionObj, index) => {
-            const questionMatch = questionObj.match(/question:\s*["'](.*?)["']/)
-            const optionsMatch = questionObj.match(/options:\s*\[([\s\S]*?)\]/)
-            const correctMatch = questionObj.match(/correct:\s*(\d+)/)
+          // Split by question objects more carefully
+          const questionPattern = /\{\s*question:\s*["'](.*?)["'],\s*options:\s*\[([\s\S]*?)\],\s*correct:\s*(\d+)\s*\}/g
+          let match
+          let questionIndex = 0
+          
+          while ((match = questionPattern.exec(questionsText)) !== null) {
+            const questionText = match[1]
+            const optionsText = match[2]
+            const correct = parseInt(match[3])
             
-            if (questionMatch) {
-              const questionText = questionMatch[1]
-              let options: string[] = []
-              let correct = 0
-              
-              if (optionsMatch) {
-                const optionsText = optionsMatch[1]
-                options = optionsText
-                  .split(',')
-                  .map(opt => opt.trim().replace(/^["']|["']$/g, ''))
-                  .filter(opt => opt.length > 0)
-              }
-              
-              if (correctMatch) {
-                correct = parseInt(correctMatch[1])
-              }
-              
+            // Parse options more carefully
+            const options = optionsText
+              .split(',')
+              .map(opt => opt.trim().replace(/^["']|["']$/g, ''))
+              .filter(opt => opt.length > 0)
+            
+            if (questionText && options.length > 0) {
               items.push({
-                id: `quiz-question-${index}`,
+                id: `quiz-question-${questionIndex}`,
                 type: 'quiz',
                 title: questionText,
                 description: `תשובה נכונה: ${options[correct] || 'לא זוהתה'}`,
@@ -180,14 +209,18 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                 options,
                 correct
               })
+              questionIndex++
             }
-          })
+          }
+          
+          console.log(`Found ${questionIndex} quiz questions`)
         } catch (error) {
-          console.log('Could not parse quiz questions:', error)
+          console.error('Error parsing quiz questions:', error)
         }
       }
     }
 
+    console.log(`Total items found: ${items.length}`)
     return items
   }
 
@@ -222,24 +255,60 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
   const injectEditButtons = (htmlContent: string): string => {
     let modifiedContent = htmlContent
     
-    // Add edit buttons to dictionary items
+    // Add edit buttons to ALL dictionary items (with or without ID)
     modifiedContent = modifiedContent.replace(
-      /<div([^>]*class="dictionary-item"[^>]*id="([^"]*)"[^>]*)>([\s\S]*?)<\/div>/g,
-      (match, attributes, id, innerContent) => {
-        const item = contentItems.find(item => item.id === id)
+      /<div([^>]*class="dictionary-item"[^>]*?)>([\s\S]*?)<\/div>/g,
+      (match, attributes, innerContent) => {
+        // Extract ID if exists
+        const idMatch = attributes.match(/id="([^"]*)"/)
+        const id = idMatch ? idMatch[1] : null
+        
+        // Try to find item by ID or by content matching
+        let item = null
+        if (id) {
+          item = contentItems.find(item => item.id === id)
+        }
+        
+        // If no ID match, try to match by content
+        if (!item) {
+          const termMatch = innerContent.match(/<div class="term">(.*?)<\/div>/)
+          if (termMatch) {
+            const termText = termMatch[1].trim()
+            item = contentItems.find(item => item.title.trim() === termText)
+          }
+        }
+        
+        // If still no match, create a temporary item
+        if (!item) {
+          const termMatch = innerContent.match(/<div class="term">(.*?)<\/div>/)
+          const defMatch = innerContent.match(/<div class="definition">(.*?)<\/div>/)
+          if (termMatch) {
+            const tempId = `temp-${Date.now()}-${Math.random()}`
+            item = {
+              id: tempId,
+              type: 'program' as const,
+              title: termMatch[1].trim(),
+              description: defMatch ? defMatch[1].trim() : '',
+              category: 'תכניות'
+            }
+            // Add to contentItems temporarily
+            contentItems.push(item)
+          }
+        }
+        
         if (item) {
           return `<div${attributes} style="position: relative; border: 2px dashed transparent; padding: 15px; margin: 10px 0; transition: all 0.3s; border-radius: 8px;" 
             onmouseover="this.style.border='2px dashed #3b82f6'; this.style.backgroundColor='#f0f9ff'; this.querySelector('.edit-controls').style.display='flex';" 
             onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
             ${innerContent}
             <div style="position: absolute; top: 8px; right: 8px; display: none; gap: 8px; z-index: 1000;" class="edit-controls">
-              <button onclick="window.parent.postMessage({action: 'edit', id: '${id}'}, '*')" 
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${item.id}'}, '*')" 
                 style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
                 onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#2563eb';" 
                 onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#3b82f6';">
                 ✏️ ערוך
               </button>
-              <button onclick="window.parent.postMessage({action: 'delete', id: '${id}'}, '*')" 
+              <button onclick="window.parent.postMessage({action: 'delete', id: '${item.id}'}, '*')" 
                 style="background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
                 onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#dc2626';" 
                 onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ef4444';">
@@ -252,58 +321,105 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       }
     )
     
-    // Add edit buttons to FAQ cards
+    // Add edit buttons to ALL FAQ cards
     modifiedContent = modifiedContent.replace(
       /<div([^>]*class="faq-card"[^>]*)>([\s\S]*?)<\/div>/g,
-      (match, attributes, innerContent) => {
-        const faqMatch = innerContent.match(/<div class="faq-question">(.*?)<\/div>/)
-        if (faqMatch) {
-          const questionText = faqMatch[1].trim()
-          const faqItem = contentItems.find(item => item.title.trim() === questionText && item.type === 'faq')
-          if (faqItem) {
-            return `<div${attributes} style="position: relative; border: 2px dashed transparent; padding: 15px; margin: 10px 0; transition: all 0.3s; border-radius: 8px;" 
-              onmouseover="this.style.border='2px dashed #10b981'; this.style.backgroundColor='#f0fdf4'; this.querySelector('.edit-controls').style.display='flex';" 
-              onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
-              ${innerContent}
-              <div style="position: absolute; top: 8px; right: 8px; display: none; gap: 8px; z-index: 1000;" class="edit-controls">
-                <button onclick="window.parent.postMessage({action: 'edit', id: '${faqItem.id}'}, '*')" 
-                  style="background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
-                  onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#059669';" 
-                  onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#10b981';">
-                  ✏️ ערוך שאלה
-                </button>
-                <button onclick="window.parent.postMessage({action: 'delete', id: '${faqItem.id}'}, '*')" 
-                  style="background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
-                  onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#dc2626';" 
-                  onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ef4444';">
-                  🗑️ מחק
-                </button>
-              </div>
-            </div>`
+      (match, attributes, innerContent, index) => {
+        // Try to find FAQ item by question text
+        const faqQuestionMatch = innerContent.match(/<div class="faq-question">(.*?)<\/div>/)
+        let faqItem = null
+        
+        if (faqQuestionMatch) {
+          const questionText = faqQuestionMatch[1].trim()
+          faqItem = contentItems.find(item => item.title.trim() === questionText && item.type === 'faq')
+        }
+        
+        // If no match found, create temporary item
+        if (!faqItem && faqQuestionMatch) {
+          const answerMatch = innerContent.match(/<div class="faq-answer">(.*?)<\/div>/)
+          const tempId = `temp-faq-${Date.now()}-${Math.random()}`
+          faqItem = {
+            id: tempId,
+            type: 'faq' as const,
+            title: faqQuestionMatch[1].trim(),
+            description: answerMatch ? answerMatch[1].trim() : '',
+            category: 'שאלות נפוצות'
           }
+          contentItems.push(faqItem)
+        }
+        
+        if (faqItem) {
+          return `<div${attributes} style="position: relative; border: 2px dashed transparent; padding: 15px; margin: 10px 0; transition: all 0.3s; border-radius: 8px;" 
+            onmouseover="this.style.border='2px dashed #10b981'; this.style.backgroundColor='#f0fdf4'; this.querySelector('.edit-controls').style.display='flex';" 
+            onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
+            ${innerContent}
+            <div style="position: absolute; top: 8px; right: 8px; display: none; gap: 8px; z-index: 1000;" class="edit-controls">
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${faqItem.id}'}, '*')" 
+                style="background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#059669';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#10b981';">
+                ✏️ ערוך שאלה
+              </button>
+              <button onclick="window.parent.postMessage({action: 'delete', id: '${faqItem.id}'}, '*')" 
+                style="background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#dc2626';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ef4444';">
+                🗑️ מחק
+              </button>
+            </div>
+          </div>`
         }
         return match
       }
     )
 
-    // Add edit buttons to headers (h2, h3, h4)
+    // Add edit buttons to ALL headers (h1, h2, h3, h4, h5, h6)
     modifiedContent = modifiedContent.replace(
-      /<(h[2-4])([^>]*id="([^"]*)"[^>]*)>(.*?)<\/h[2-4]>/g,
-      (match, tag, attributes, id, innerText) => {
-        const headerItem = contentItems.find(item => item.id === id)
+      /<(h[1-6])([^>]*?)>(.*?)<\/h[1-6]>/g,
+      (match, tag, attributes, innerText) => {
+        // Extract ID if exists
+        const idMatch = attributes.match(/id="([^"]*)"/)
+        const id = idMatch ? idMatch[1] : null
+        
+        // Try to find header item
+        let headerItem = null
+        if (id) {
+          headerItem = contentItems.find(item => item.id === id)
+        }
+        
+        // If no ID match, try to match by text
+        if (!headerItem) {
+          const headerText = innerText.trim()
+          headerItem = contentItems.find(item => item.title.trim() === headerText)
+        }
+        
+        // If still no match, create temporary item
+        if (!headerItem && innerText.trim().length > 2) {
+          const tempId = id || `temp-header-${Date.now()}-${Math.random()}`
+          headerItem = {
+            id: tempId,
+            type: 'document' as const,
+            title: innerText.trim(),
+            description: `כותרת מסוג ${tag.toUpperCase()}`,
+            category: 'כותרות וחלקים'
+          }
+          contentItems.push(headerItem)
+        }
+        
         if (headerItem) {
-          return `<${tag}${attributes} style="position: relative; border: 2px dashed transparent; padding: 10px; margin: 15px 0; transition: all 0.3s; border-radius: 8px;" 
+          const newAttributes = id ? attributes : `${attributes} id="${headerItem.id}"`
+          return `<${tag}${newAttributes} style="position: relative; border: 2px dashed transparent; padding: 10px; margin: 15px 0; transition: all 0.3s; border-radius: 8px;" 
             onmouseover="this.style.border='2px dashed #f59e0b'; this.style.backgroundColor='#fffbeb'; this.querySelector('.edit-controls').style.display='flex';" 
             onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
             ${innerText}
             <div style="position: absolute; top: 5px; right: 5px; display: none; gap: 6px; z-index: 1000;" class="edit-controls">
-              <button onclick="window.parent.postMessage({action: 'edit', id: '${id}'}, '*')" 
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${headerItem.id}'}, '*')" 
                 style="background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
                 onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#d97706';" 
                 onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#f59e0b';">
                 ✏️ ערוך כותרת
               </button>
-              <button onclick="window.parent.postMessage({action: 'delete', id: '${id}'}, '*')" 
+              <button onclick="window.parent.postMessage({action: 'delete', id: '${headerItem.id}'}, '*')" 
                 style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
                 onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#dc2626';" 
                 onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ef4444';">
