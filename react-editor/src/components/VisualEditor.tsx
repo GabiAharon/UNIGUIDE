@@ -10,12 +10,15 @@ interface VisualEditorProps {
 
 interface ContentItem {
   id: string
-  type: 'program' | 'faq' | 'event' | 'system' | 'document' | 'quiz'
+  type: 'program' | 'faq' | 'event' | 'system' | 'document' | 'quiz' | 'link' | 'button' | 'image' | 'video'
   title: string
   description: string
   category?: string
   options?: string[]
   correct?: number
+  url?: string
+  src?: string
+  alt?: string
 }
 
 const VisualEditor: React.FC<VisualEditorProps> = ({ 
@@ -219,6 +222,92 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         }
       }
     }
+
+    // Extract links (a tags)
+    const links = doc.querySelectorAll('a[href]')
+    console.log(`Found ${links.length} links`)
+    
+    links.forEach((link, index) => {
+      const href = link.getAttribute('href') || ''
+      const linkText = link.textContent?.trim() || ''
+      const linkId = link.id || `link-${index}`
+      
+      if (linkText && href) {
+        items.push({
+          id: linkId,
+          type: 'link',
+          title: linkText,
+          description: `קישור ל: ${href}`,
+          category: 'קישורים',
+          url: href
+        })
+      }
+    })
+
+    // Extract buttons (button tags and styled links)
+    const buttons = doc.querySelectorAll('button, .btn, .button, a.button, a.btn')
+    console.log(`Found ${buttons.length} buttons`)
+    
+    buttons.forEach((button, index) => {
+      const buttonText = button.textContent?.trim() || ''
+      const buttonHref = button.getAttribute('href') || button.getAttribute('onclick') || ''
+      const buttonId = button.id || `button-${index}`
+      
+      if (buttonText) {
+        items.push({
+          id: buttonId,
+          type: 'button',
+          title: buttonText,
+          description: buttonHref ? `כפתור עם פעולה: ${buttonHref}` : 'כפתור',
+          category: 'כפתורים',
+          url: buttonHref
+        })
+      }
+    })
+
+    // Extract images
+    const images = doc.querySelectorAll('img')
+    console.log(`Found ${images.length} images`)
+    
+    images.forEach((img, index) => {
+      const src = img.getAttribute('src') || ''
+      const alt = img.getAttribute('alt') || ''
+      const title = img.getAttribute('title') || alt || `תמונה ${index + 1}`
+      const imgId = img.id || `img-${index}`
+      
+      if (src) {
+        items.push({
+          id: imgId,
+          type: 'image',
+          title,
+          description: `תמונה: ${src}`,
+          category: 'תמונות',
+          src,
+          alt
+        })
+      }
+    })
+
+    // Extract videos (video tags and iframe embeds)
+    const videos = doc.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"], iframe[src*="video"]')
+    console.log(`Found ${videos.length} videos`)
+    
+    videos.forEach((video, index) => {
+      const src = video.getAttribute('src') || ''
+      const title = video.getAttribute('title') || `סרטון ${index + 1}`
+      const videoId = video.id || `video-${index}`
+      
+      if (src) {
+        items.push({
+          id: videoId,
+          type: 'video',
+          title,
+          description: `סרטון: ${src}`,
+          category: 'סרטונים',
+          src
+        })
+      }
+    })
 
     console.log(`Total items found: ${items.length}`)
     return items
@@ -427,6 +516,229 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
               </button>
             </div>
           </${tag}>`
+        }
+        return match
+      }
+    )
+
+    // Add edit buttons to links
+    modifiedContent = modifiedContent.replace(
+      /<a([^>]*href="([^"]*)"[^>]*)>(.*?)<\/a>/g,
+      (match, attributes, href, innerText) => {
+        // Extract ID if exists or create one
+        const idMatch = attributes.match(/id="([^"]*)"/)
+        const id = idMatch ? idMatch[1] : null
+        
+        // Find link item
+        let linkItem = null
+        if (id) {
+          linkItem = contentItems.find(item => item.id === id && item.type === 'link')
+        }
+        
+        // If no match, try to find by text and href
+        if (!linkItem) {
+          const linkText = innerText.trim()
+          linkItem = contentItems.find(item => 
+            item.type === 'link' && 
+            item.title.trim() === linkText && 
+            item.url === href
+          )
+        }
+        
+        // Create temporary item if needed
+        if (!linkItem) {
+          const tempId = id || `temp-link-${Date.now()}-${Math.random()}`
+          linkItem = {
+            id: tempId,
+            type: 'link' as const,
+            title: innerText.trim(),
+            description: `קישור ל: ${href}`,
+            category: 'קישורים',
+            url: href
+          }
+          contentItems.push(linkItem)
+        }
+        
+        if (linkItem) {
+          const newAttributes = id ? attributes : `${attributes} id="${linkItem.id}"`
+          return `<a${newAttributes} style="position: relative; display: inline-block; border: 2px dashed transparent; padding: 5px; margin: 2px; transition: all 0.3s; border-radius: 4px;" 
+            onmouseover="this.style.border='2px dashed #8b5cf6'; this.style.backgroundColor='#f3f4f6'; this.querySelector('.edit-controls').style.display='flex';" 
+            onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
+            ${innerText}
+            <div style="position: absolute; top: -5px; right: -5px; display: none; gap: 4px; z-index: 1000;" class="edit-controls">
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${linkItem.id}'}, '*')" 
+                style="background: #8b5cf6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#7c3aed';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#8b5cf6';">
+                🔗 ערוך קישור
+              </button>
+            </div>
+          </a>`
+        }
+        return match
+      }
+    )
+
+    // Add edit buttons to buttons
+    modifiedContent = modifiedContent.replace(
+      /<button([^>]*)>(.*?)<\/button>/g,
+      (match, attributes, innerText) => {
+        const idMatch = attributes.match(/id="([^"]*)"/)
+        const id = idMatch ? idMatch[1] : null
+        
+        let buttonItem = null
+        if (id) {
+          buttonItem = contentItems.find(item => item.id === id && item.type === 'button')
+        }
+        
+        if (!buttonItem) {
+          const buttonText = innerText.trim()
+          buttonItem = contentItems.find(item => 
+            item.type === 'button' && 
+            item.title.trim() === buttonText
+          )
+        }
+        
+        if (!buttonItem) {
+          const tempId = id || `temp-button-${Date.now()}-${Math.random()}`
+          const onclick = attributes.match(/onclick="([^"]*)"/)
+          buttonItem = {
+            id: tempId,
+            type: 'button' as const,
+            title: innerText.trim(),
+            description: onclick ? `כפתור עם פעולה: ${onclick[1]}` : 'כפתור',
+            category: 'כפתורים',
+            url: onclick ? onclick[1] : ''
+          }
+          contentItems.push(buttonItem)
+        }
+        
+        if (buttonItem) {
+          const newAttributes = id ? attributes : `${attributes} id="${buttonItem.id}"`
+          return `<div style="position: relative; display: inline-block; margin: 5px;">
+            <button${newAttributes} style="border: 2px dashed transparent; transition: all 0.3s; border-radius: 4px;" 
+              onmouseover="this.style.border='2px dashed #ec4899'; this.parentElement.querySelector('.edit-controls').style.display='flex';" 
+              onmouseout="this.style.border='2px dashed transparent'; this.parentElement.querySelector('.edit-controls').style.display='none';">
+              ${innerText}
+            </button>
+            <div style="position: absolute; top: -10px; right: -10px; display: none; gap: 4px; z-index: 1000;" class="edit-controls">
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${buttonItem.id}'}, '*')" 
+                style="background: #ec4899; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#db2777';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ec4899';">
+                🔘 ערוך כפתור
+              </button>
+            </div>
+          </div>`
+        }
+        return match
+      }
+    )
+
+    // Add edit buttons to images
+    modifiedContent = modifiedContent.replace(
+      /<img([^>]*src="([^"]*)"[^>]*)>/g,
+      (match, attributes, src) => {
+        const idMatch = attributes.match(/id="([^"]*)"/)
+        const altMatch = attributes.match(/alt="([^"]*)"/)
+        const id = idMatch ? idMatch[1] : null
+        const alt = altMatch ? altMatch[1] : ''
+        
+        let imgItem = null
+        if (id) {
+          imgItem = contentItems.find(item => item.id === id && item.type === 'image')
+        }
+        
+        if (!imgItem) {
+          imgItem = contentItems.find(item => 
+            item.type === 'image' && 
+            item.src === src
+          )
+        }
+        
+        if (!imgItem) {
+          const tempId = id || `temp-img-${Date.now()}-${Math.random()}`
+          imgItem = {
+            id: tempId,
+            type: 'image' as const,
+            title: alt || `תמונה`,
+            description: `תמונה: ${src}`,
+            category: 'תמונות',
+            src,
+            alt
+          }
+          contentItems.push(imgItem)
+        }
+        
+        if (imgItem) {
+          const newAttributes = id ? attributes : `${attributes} id="${imgItem.id}"`
+          return `<div style="position: relative; display: inline-block; border: 2px dashed transparent; padding: 5px; margin: 5px; transition: all 0.3s; border-radius: 8px;" 
+            onmouseover="this.style.border='2px dashed #06b6d4'; this.style.backgroundColor='#f0f9ff'; this.querySelector('.edit-controls').style.display='flex';" 
+            onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
+            <img${newAttributes}>
+            <div style="position: absolute; top: 5px; right: 5px; display: none; gap: 4px; z-index: 1000;" class="edit-controls">
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${imgItem.id}'}, '*')" 
+                style="background: #06b6d4; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#0891b2';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#06b6d4';">
+                🖼️ ערוך תמונה
+              </button>
+            </div>
+          </div>`
+        }
+        return match
+      }
+    )
+
+    // Add edit buttons to videos (iframe embeds)
+    modifiedContent = modifiedContent.replace(
+      /<iframe([^>]*src="([^"]*)"[^>]*)><\/iframe>/g,
+      (match, attributes, src) => {
+        const idMatch = attributes.match(/id="([^"]*)"/)
+        const titleMatch = attributes.match(/title="([^"]*)"/)
+        const id = idMatch ? idMatch[1] : null
+        const title = titleMatch ? titleMatch[1] : 'סרטון'
+        
+        let videoItem = null
+        if (id) {
+          videoItem = contentItems.find(item => item.id === id && item.type === 'video')
+        }
+        
+        if (!videoItem) {
+          videoItem = contentItems.find(item => 
+            item.type === 'video' && 
+            item.src === src
+          )
+        }
+        
+        if (!videoItem) {
+          const tempId = id || `temp-video-${Date.now()}-${Math.random()}`
+          videoItem = {
+            id: tempId,
+            type: 'video' as const,
+            title,
+            description: `סרטון: ${src}`,
+            category: 'סרטונים',
+            src
+          }
+          contentItems.push(videoItem)
+        }
+        
+        if (videoItem) {
+          const newAttributes = id ? attributes : `${attributes} id="${videoItem.id}"`
+          return `<div style="position: relative; display: inline-block; border: 2px dashed transparent; padding: 5px; margin: 5px; transition: all 0.3s; border-radius: 8px;" 
+            onmouseover="this.style.border='2px dashed #dc2626'; this.style.backgroundColor='#fef2f2'; this.querySelector('.edit-controls').style.display='flex';" 
+            onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
+            <iframe${newAttributes}></iframe>
+            <div style="position: absolute; top: 5px; right: 5px; display: none; gap: 4px; z-index: 1000;" class="edit-controls">
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${videoItem.id}'}, '*')" 
+                style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#b91c1c';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#dc2626';">
+                🎥 ערוך סרטון
+              </button>
+            </div>
+          </div>`
         }
         return match
       }
@@ -753,12 +1065,26 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                                 : item.description}
                             </p>
                             <div className="flex items-center justify-between">
-                              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                              <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium ${
+                                item.type === 'program' ? 'bg-blue-100 text-blue-800' :
+                                item.type === 'faq' ? 'bg-green-100 text-green-800' :
+                                item.type === 'system' ? 'bg-purple-100 text-purple-800' :
+                                item.type === 'event' ? 'bg-orange-100 text-orange-800' :
+                                item.type === 'quiz' ? 'bg-red-100 text-red-800' :
+                                item.type === 'link' ? 'bg-violet-100 text-violet-800' :
+                                item.type === 'button' ? 'bg-pink-100 text-pink-800' :
+                                item.type === 'image' ? 'bg-cyan-100 text-cyan-800' :
+                                item.type === 'video' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                              }`}>
                                 {item.type === 'program' ? 'תכנית' :
                                  item.type === 'faq' ? 'שאלה נפוצה' :
                                  item.type === 'system' ? 'מערכת' :
                                  item.type === 'event' ? 'אירוע' :
-                                 item.type === 'quiz' ? 'שאלת מבחן' : 'מסמך'}
+                                 item.type === 'quiz' ? 'שאלת מבחן' :
+                                 item.type === 'link' ? 'קישור' :
+                                 item.type === 'button' ? 'כפתור' :
+                                 item.type === 'image' ? 'תמונה' :
+                                 item.type === 'video' ? 'סרטון' : 'מסמך'}
                               </span>
                               <div className="flex gap-2">
                                 <button
@@ -833,7 +1159,11 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                              e.target.value === 'faq' ? 'שאלות נפוצות' :
                              e.target.value === 'system' ? 'מערכות' :
                              e.target.value === 'event' ? 'אירועים' :
-                             e.target.value === 'quiz' ? 'שאלות מבחן' : 'מסמכים'
+                             e.target.value === 'quiz' ? 'שאלות מבחן' :
+                             e.target.value === 'link' ? 'קישורים' :
+                             e.target.value === 'button' ? 'כפתורים' :
+                             e.target.value === 'image' ? 'תמונות' :
+                             e.target.value === 'video' ? 'סרטונים' : 'מסמכים'
                   })}
                   className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
@@ -843,6 +1173,10 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                   <option value="event">אירוע</option>
                   <option value="document">מסמך</option>
                   <option value="quiz">שאלת מבחן</option>
+                  <option value="link">קישור</option>
+                  <option value="button">כפתור</option>
+                  <option value="image">תמונה</option>
+                  <option value="video">סרטון</option>
                 </select>
               </div>
 
@@ -905,7 +1239,54 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                 </>
               )}
 
-              {newItem.type !== 'quiz' && (
+              {/* URL field for links and buttons */}
+              {(newItem.type === 'link' || newItem.type === 'button') && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    {newItem.type === 'link' ? 'קישור (URL)' : 'פעולה/קישור'}
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.url || ''}
+                    onChange={(e) => setNewItem({...newItem, url: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    placeholder={newItem.type === 'link' ? "https://example.com" : "onclick או href"}
+                  />
+                </div>
+              )}
+
+              {/* Source field for images and videos */}
+              {(newItem.type === 'image' || newItem.type === 'video') && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    {newItem.type === 'image' ? 'מקור תמונה (src)' : 'מקור סרטון (src)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.src || ''}
+                    onChange={(e) => setNewItem({...newItem, src: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    placeholder={newItem.type === 'image' ? "path/to/image.jpg" : "https://youtube.com/embed/..."}
+                  />
+                </div>
+              )}
+
+              {/* Alt text for images */}
+              {newItem.type === 'image' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">טקסט חלופי (Alt)</label>
+                  <input
+                    type="text"
+                    value={newItem.alt || ''}
+                    onChange={(e) => setNewItem({...newItem, alt: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    placeholder="תיאור התמונה לנגישות..."
+                  />
+                </div>
+              )}
+
+              {/* Description field for non-quiz items */}
+              {newItem.type !== 'quiz' && newItem.type !== 'image' && (
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">תיאור</label>
                   <textarea
@@ -987,7 +1368,54 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                 </div>
               )}
 
-              {editingItem.type !== 'quiz' && (
+              {/* URL field for links and buttons */}
+              {(editingItem.type === 'link' || editingItem.type === 'button') && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    {editingItem.type === 'link' ? 'קישור (URL)' : 'פעולה/קישור'}
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItem.url || ''}
+                    onChange={(e) => setEditingItem({...editingItem, url: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    placeholder={editingItem.type === 'link' ? "https://example.com" : "onclick או href"}
+                  />
+                </div>
+              )}
+
+              {/* Source field for images and videos */}
+              {(editingItem.type === 'image' || editingItem.type === 'video') && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    {editingItem.type === 'image' ? 'מקור תמונה (src)' : 'מקור סרטון (src)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItem.src || ''}
+                    onChange={(e) => setEditingItem({...editingItem, src: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    placeholder={editingItem.type === 'image' ? "path/to/image.jpg" : "https://youtube.com/embed/..."}
+                  />
+                </div>
+              )}
+
+              {/* Alt text for images */}
+              {editingItem.type === 'image' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">טקסט חלופי (Alt)</label>
+                  <input
+                    type="text"
+                    value={editingItem.alt || ''}
+                    onChange={(e) => setEditingItem({...editingItem, alt: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    placeholder="תיאור התמונה לנגישות..."
+                  />
+                </div>
+              )}
+
+              {/* Description field for non-quiz items */}
+              {editingItem.type !== 'quiz' && editingItem.type !== 'image' && (
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">תיאור</label>
                   <textarea
