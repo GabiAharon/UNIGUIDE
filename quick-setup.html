@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 הגדרה מהירה - חיבור לגיטהאב</title>
+    <style>
+        body {
+            font-family: Assistant, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            min-height: 100vh;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+        }
+
+        h1 {
+            text-align: center;
+            background: linear-gradient(45deg, #007bff, #00bcd4);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-right: 5px solid #28a745;
+        }
+
+        .step h3 {
+            color: #28a745;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-number {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .command-box {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            direction: ltr;
+            text-align: left;
+            font-size: 1.1em;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            color: #856404;
+        }
+
+        .info-box {
+            background: #e8f4ff;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            color: #004085;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            color: #155724;
+        }
+
+        .big-button {
+            display: block;
+            background: linear-gradient(45deg, #007bff, #00bcd4);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            text-decoration: none;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 20px auto;
+            max-width: 300px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0,123,255,0.3);
+        }
+
+        .big-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,123,255,0.4);
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .github-logo {
+            width: 30px;
+            height: 30px;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 הגדרה מהירה</h1>
+        
+        <div class="warning-box">
+            <h3>⚠️ חשוב לקרוא!</h3>
+            <p>בטח תהיתת למה הכפתורים בממשק הניהול לא עובדים... הסיבה פשוטה:</p>
+            <p><strong>המערכת לא יודעת לאיזה פרויקט בגיטהאב לחבר!</strong></p>
+            <p>צריך להגדיר את זה פעם ראשונה, ואז הכל יעבוד חלק כמו שעון.</p>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">1</span>צור פרויקט בגיטהאב (אם עדיין לא עשית)</h3>
+            <p>עבור ל-<a href="https://github.com" target="_blank">GitHub.com</a> וצור repository חדש:</p>
+            <ul>
+                <li>לחץ על הכפתור הירוק "New repository"</li>
+                <li>תן לו שם כמו <span class="highlight">uniguide</span> או <span class="highlight">unistream-guide</span></li>
+                <li>הגדר אותו כ-Public (אם אתה רוצה שהאתר יהיה זמין לכולם)</li>
+                <li>לחץ "Create repository"</li>
+            </ul>
+            <p><strong>שמור את הכתובת!</strong> היא תיראה כך:</p>
+            <div class="command-box">https://github.com/USERNAME/REPOSITORY-NAME.git</div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">2</span>הרץ הגדרה אוטומטית</h3>
+            <p>הדרך הכי פשוטה - לחץ לחיצה כפולה על הקובץ:</p>
+            <div class="command-box">setup-git.bat</div>
+            <p>הסקריפט יעשה הכל אוטומטית:</p>
+            <ul>
+                <li>יאתחל Git בתיקייה</li>
+                <li>יבקש ממך את כתובת הרפוזיטורי</li>
+                <li>יבקש את השם והדואר שלך</li>
+                <li>יעלה את הקבצים הראשוניים</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">3</span>חלופה - הגדרה ידנית בטרמינל</h3>
+            <p>אם אתה מעדיף לעשות זה בעצמך, פתח טרמינל בתיקיית הפרויקט והרץ:</p>
+            <div class="command-box">
+git init<br>
+git remote add origin https://github.com/USERNAME/REPOSITORY-NAME.git<br>
+git config --global user.name "השם שלך"<br>
+git config --global user.email "email@example.com"<br>
+git add .<br>
+git commit -m "הגדרה ראשונית"<br>
+git push -u origin main
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">4</span>בדוק שהכל עובד</h3>
+            <p>אחרי ההגדרה, נסה:</p>
+            <div class="command-box">publish.bat</div>
+            <p>או:</p>
+            <div class="command-box">npm run update</div>
+            <p>אם זה עובד - מזל טוב! המערכת מוכנה לעבודה! 🎉</p>
+        </div>
+
+        <div class="success-box">
+            <h3>✅ אחרי ההגדרה הראשונית:</h3>
+            <ul>
+                <li><strong>הכפתורים בממשק הניהול יעבדו</strong> - יציגו לך את הפקודות הנכונות</li>
+                <li><strong>הסקריפטים יעבדו</strong> - publish.bat ו-npm run update</li>
+                <li><strong>הפרסום יהיה אוטומטי</strong> - שינוי → לחיצה → פרסום לאתר</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>🤔 למה זה לא עבד בלי הגדרה?</h3>
+            <p>כי המערכת פועלת כך:</p>
+            <ol>
+                <li><strong>הממשק (admin.html)</strong> - זה דף HTML שרץ בדפדפן שלך מקומית</li>
+                <li><strong>הדפדפן לא יכול לגשת לגיטהאב ישירות</strong> - זה לא בטוח</li>
+                <li><strong>לכן הכפתורים מציגים לך פקודות טרמינל</strong> - שאתה מריץ בעצמך</li>
+                <li><strong>הסקריפטים צריכים לדעת לאן לשלוח</strong> - לכן ההגדרה הראשונית</li>
+            </ol>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="setup-git.bat" class="big-button" download>
+                🚀 התחל הגדרה מהירה
+            </a>
+            <p style="margin-top: 20px; color: #666;">
+                אחרי ההגדרה, חזור ל-<a href="admin.html">ממשק הניהול</a> והכל יעבוד!
+            </p>
+        </div>
+    </div>
+</body>
+</html>

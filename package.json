@@ -1,0 +1,47 @@
+{
+  "name": "uniguide-cms",
+  "version": "1.0.0",
+  "description": "מערכת ניהול תוכן עבור המדריך המלא למובילי ומנהלי מרכזי יזמות - יוניסטרים",
+  "main": "index.js",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "node build-site.js",
+    "deploy": "netlify deploy --prod",
+    "test": "node test-functions.js",
+    "start": "netlify dev --port 8888",
+    "setup": "node setup.js",
+    "publish": "node publish.js",
+    "publish:auto": "node publish.js --auto",
+    "publish:quick": "node publish.js --quick",
+    "update": "node publish.js --auto"
+  },
+  "keywords": [
+    "cms",
+    "content-management",
+    "education",
+    "entrepreneurship",
+    "hebrew",
+    "netlify"
+  ],
+  "author": "יוניסטרים",
+  "license": "MIT",
+  "dependencies": {
+    "sharp": "^0.32.6",
+    "netlify-cli": "^17.0.0"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.4.0",
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unistream/uniguide"
+  },
+  "bugs": {
+    "url": "https://github.com/unistream/uniguide/issues"
+  },
+  "homepage": "https://uniguide.netlify.app"
+}

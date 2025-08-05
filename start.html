@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 מערכת ניהול תוכן - יוניסטרים</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Assistant, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 50px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .logo {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        h1 {
+            background: linear-gradient(45deg, #007bff, #00bcd4);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            font-size: 3em;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .subtitle {
+            font-size: 1.3em;
+            color: #666;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+
+        .feature {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .feature h3 {
+            color: #007bff;
+            font-size: 1.4em;
+            margin-bottom: 10px;
+        }
+
+        .feature p {
+            color: #666;
+            font-size: 1em;
+            line-height: 1.5;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 18px 35px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #00bcd4);
+            color: white;
+            box-shadow: 0 6px 20px rgba(0,123,255,0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            box-shadow: 0 6px 20px rgba(40,167,69,0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            box-shadow: 0 6px 20px rgba(255,107,107,0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .setup-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 30px 0;
+            color: #856404;
+        }
+
+        .setup-notice h4 {
+            margin-bottom: 10px;
+            color: #b8860b;
+        }
+
+        .steps {
+            text-align: right;
+            margin-top: 30px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .steps h3 {
+            color: #007bff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .steps ol {
+            padding-right: 20px;
+        }
+
+        .steps li {
+            margin: 10px 0;
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+
+        .code {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            direction: ltr;
+            text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🛠️</div>
+        <h1>מערכת ניהול תוכן</h1>
+        <div class="subtitle">
+            ברוכים הבאים למערכת הניהול המתקדמת<br>
+            של המדריך המלא למובילי ומנהלי מרכזי יזמות
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📝</div>
+                <h3>עריכה ויזואלית</h3>
+                <p>ממשק ידידותי לעריכת תוכן, הוספת נושאים חדשים וניהול קטגוריות</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">🧪</div>
+                <h3>ניהול בחינות</h3>
+                <p>יצירה ועריכה של שאלות בחינה עם תמיכה בערבוב ומשוב מיידי</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">🖼️</div>
+                <h3>ניהול תמונות</h3>
+                <p>העלאה, אופטימיזציה וניהול של תמונות עם יצירה אוטומטית של גדלים</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">☁️</div>
+                <h3>סנכרון ענן</h3>
+                <p>גיבוי אוטומטי ופרסום באתר באמצעות אינטגרציה עם Netlify</p>
+            </div>
+        </div>
+
+        <div class="setup-notice">
+            <h4>🚨 לפני שמתחילים:</h4>
+            <p>אם זו הפעם הראשונה שלך, צריך להגדיר את החיבור לגיטהאב כדי שהפרסום יעבוד.</p>
+            <p><strong>⭐ מומלץ:</strong> <a href="quick-setup.html" style="color: #007bff;">לחץ כאן להגדרה מהירה של גיטהאב</a></p>
+        </div>
+
+        <div class="action-buttons">
+            <a href="admin.html" class="btn btn-primary">
+                <span>🎯</span>
+                התחל לעבוד
+            </a>
+            
+            <a href="quick-setup.html" class="btn btn-warning">
+                <span>🔧</span>
+                הגדרת גיטהאב
+            </a>
+            
+            <a href="index.html" class="btn btn-success">
+                <span>📚</span>
+                צפה במדריך
+            </a>
+        </div>
+
+        <div class="steps">
+            <h3>📋 הוראות הפעלה</h3>
+            <ol>
+                <li><strong>הגדרת גיטהאב:</strong> לחץ על "הגדרת גיטהאב" להתחברות לגיטהאב (פעם ראשונה בלבד)</li>
+                <li><strong>פתיחת הממשק:</strong> לחץ על "התחל לעבוד" או עבור ל-admin.html</li>
+                <li><strong>עריכת תוכן:</strong> השתמש בממשק לעריכה והוספת תוכן</li>
+                <li><strong>פרסום מקומי:</strong> לחץ "פרסם שינויים מקומית" לעדכון הקבצים</li>
+                <li><strong>פרסום לאתר:</strong> לחץ לחיצה כפולה על publish.bat או הרץ npm run update</li>
+                <li><strong>תוצאה:</strong> האתר שלך מתעדכן אוטומטית ב-Netlify! 🎉</li>
+            </ol>
+        </div>
+
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee;">
+            <p style="color: #666; font-size: 1.1em;">
+                💡 <strong>טיפ:</strong> למדריך מפורט על השימוש במערכת, צפה ב-README.md
+            </p>
+        </div>
+    </div>
+
+    <script>
+        async function runSetup() {
+            // בדיקה אם זה סביבת פיתוח
+            if (window.location.protocol === 'file:') {
+                alert('🚨 כדי להריץ הגדרה ראשונית, פתח טרמינל והרץ:\nnpm run setup');
+                return;
+            }
+
+            try {
+                // ניסיון לבצע הגדרה באמצעות API
+                const response = await fetch('/api/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'initial-setup' })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('✅ ההגדרה הושלמה בהצלחה!\n\nכעת תוכל להתחיל להשתמש במערכת.');
+                    window.location.href = 'admin.html';
+                } else {
+                    throw new Error('שגיאה בהגדרה');
+                }
+            } catch (error) {
+                console.error('שגיאה:', error);
+                alert('🚨 לא ניתן להריץ הגדרה אוטומטית.\n\nאנא פתח טרמינל והרץ:\nnpm run setup');
+            }
+        }
+
+        // בדיקה אוטומטית אם המערכת מוכנה
+        document.addEventListener('DOMContentLoaded', function() {
+            // בדיקה אם יש localStorage עם נתונים
+            const hasContent = localStorage.getItem('unistream-content');
+            const hasQuiz = localStorage.getItem('unistream-quiz');
+            
+            if (hasContent || hasQuiz) {
+                // יש נתונים קיימים
+                const notice = document.querySelector('.setup-notice');
+                notice.innerHTML = `
+                    <h4>✅ המערכת מוכנה לשימוש!</h4>
+                    <p>נמצאו נתונים קיימים במערכת. תוכל להתחיל לעבוד מיד.</p>
+                `;
+                notice.style.background = '#d4edda';
+                notice.style.borderColor = '#c3e6cb';
+                notice.style.color = '#155724';
+            }
+        });
+
+        // אנימציית הכותרת
+        let titleElement = document.querySelector('h1');
+        let colors = ['#007bff', '#e73c7e', '#23a6d5', '#23d5ab', '#ee7752'];
+        let colorIndex = 0;
+
+        setInterval(() => {
+            colorIndex = (colorIndex + 1) % colors.length;
+            titleElement.style.background = `linear-gradient(45deg, ${colors[colorIndex]}, ${colors[(colorIndex + 1) % colors.length]})`;
+            titleElement.style.backgroundClip = 'text';
+            titleElement.style.webkitBackgroundClip = 'text';
+        }, 3000);
+    </script>
+</body>
+</html>
