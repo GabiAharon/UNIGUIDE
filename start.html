@@ -235,9 +235,9 @@
 
         <div class="features">
             <div class="feature">
-                <div class="feature-icon">📝</div>
-                <h3>עריכה ויזואלית</h3>
-                <p>ממשק ידידותי לעריכת תוכן, הוספת נושאים חדשים וניהול קטגוריות</p>
+                <div class="feature-icon">🎨</div>
+                <h3>עורך ויזואלי חדש!</h3>
+                <p><strong>עריכה קלה ללא צורך בידע בקוד!</strong> לחץ על כפתורי עריכה ליד כל תוכן, הוסף תכניות וקטגוריות בקלות, וראה שינויים בזמן אמת!</p>
             </div>
             
             <div class="feature">
@@ -261,42 +261,52 @@
 
         <div class="setup-notice">
             <h4>🚨 לפני שמתחילים:</h4>
-            <p>אם זו הפעם הראשונה שלך, צריך להגדיר את החיבור לגיטהאב כדי שהפרסום יעבוד.</p>
-            <p><strong>⭐ מומלץ:</strong> <a href="quick-setup.html" style="color: #007bff;">לחץ כאן להגדרה מהירה של גיטהאב</a></p>
+            <p>אם זו הפעם הראשונה שלך, צריך ליצור GitHub Personal Access Token כדי שהשמירה תעבוד.</p>
+            <p><strong>📖 הוראות מפורטות:</strong> <a href="editor-instructions.html" style="color: #007bff;">לחץ כאן למדריך המלא</a></p>
         </div>
 
         <div class="action-buttons">
-            <a href="admin.html" class="btn btn-primary">
-                <span>🎯</span>
-                התחל לעבוד
+            <a href="http://localhost:3001" class="btn btn-primary" target="_blank">
+                <span>⚛️</span>
+                עורך React (מומלץ ביותר!)
             </a>
             
-            <a href="quick-setup.html" class="btn btn-warning">
-                <span>🔧</span>
-                הגדרת גיטהאב
+            <button class="btn btn-success" onclick="startReactEditor()">
+                <span>🚀</span>
+                הפעל עורך React
+            </button>
+            
+            <a href="editor-instructions.html" class="btn btn-warning">
+                <span>📖</span>
+                הוראות שימוש
+            </a>
+            
+            <a href="admin.html" class="btn" style="background: #6c757d;">
+                <span>⚙️</span>
+                כלי ישן (מקומי)
             </a>
             
             <a href="index.html" class="btn btn-success">
-                <span>📚</span>
+                <span>👀</span>
                 צפה במדריך
             </a>
         </div>
 
         <div class="steps">
-            <h3>📋 הוראות הפעלה</h3>
+            <h3>📋 הוראות הפעלה - עורך מאובטח</h3>
             <ol>
-                <li><strong>הגדרת גיטהאב:</strong> לחץ על "הגדרת גיטהאב" להתחברות לגיטהאב (פעם ראשונה בלבד)</li>
-                <li><strong>פתיחת הממשק:</strong> לחץ על "התחל לעבוד" או עבור ל-admin.html</li>
-                <li><strong>עריכת תוכן:</strong> השתמש בממשק לעריכה והוספת תוכן</li>
-                <li><strong>פרסום מקומי:</strong> לחץ "פרסם שינויים מקומית" לעדכון הקבצים</li>
-                <li><strong>פרסום לאתר:</strong> לחץ לחיצה כפולה על publish.bat או הרץ npm run update</li>
-                <li><strong>תוצאה:</strong> האתר שלך מתעדכן אוטומטית ב-Netlify! 🎉</li>
+                <li><strong>הגדרת GitHub Token:</strong> יצירת טוקן אישי בגיטהאב (פעם ראשונה בלבד)</li>
+                <li><strong>כניסה לעורך:</strong> לחץ על "עורך מאובטח" והכנס סיסמה</li>
+                <li><strong>הגדרת חיבור:</strong> הכנס את הטוכן ושם הרפוזיטורי</li>
+                <li><strong>עריכת תוכן:</strong> ערוך ישירות את index.html או quiz.html</li>
+                <li><strong>שמירה אוטומטית:</strong> השינויים נשמרים אוטומטית לגיטהאב!</li>
+                <li><strong>תוצאה:</strong> האתר שלך מתעדכן בזמן אמת! 🎉</li>
             </ol>
         </div>
 
         <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee;">
             <p style="color: #666; font-size: 1.1em;">
-                💡 <strong>טיפ:</strong> למדריך מפורט על השימוש במערכת, צפה ב-README.md
+                💡 <strong>טיפ:</strong> למדריך מפורט על השימוש במערכת, צפה ב-README.md או בהוראות השימוש
             </p>
         </div>
     </div>
@@ -362,6 +372,42 @@
             titleElement.style.backgroundClip = 'text';
             titleElement.style.webkitBackgroundClip = 'text';
         }, 3000);
+
+        // React Editor Functions
+        function startReactEditor() {
+            // Try to open the React editor
+            const reactWindow = window.open('http://localhost:3001', '_blank');
+            
+            // If it fails (server not running), show instructions
+            setTimeout(() => {
+                if (!reactWindow || reactWindow.closed) {
+                    alert('🚀 להפעלת העורך React:\n\n1. פתח terminal/cmd\n2. הרץ: start-react-editor.bat\n3. המתן לשרת להתחיל\n4. פתח http://localhost:3001');
+                }
+            }, 1000);
+        }
+        
+        // Auto-check if React editor is running
+        setTimeout(() => {
+            fetch('http://localhost:3001')
+                .then(() => {
+                    // Server is running, show success message
+                    const statusDiv = document.createElement('div');
+                    statusDiv.innerHTML = '✅ עורך React פעיל ב-localhost:3001';
+                    statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 10px 20px; border-radius: 10px; z-index: 1000; font-size: 14px;';
+                    document.body.appendChild(statusDiv);
+                    
+                    setTimeout(() => statusDiv.remove(), 5000);
+                })
+                .catch(() => {
+                    // Server is not running
+                    const statusDiv = document.createElement('div');
+                    statusDiv.innerHTML = '⚠️ עורך React לא פעיל - לחץ "הפעל עורך React"';
+                    statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ffc107; color: #212529; padding: 10px 20px; border-radius: 10px; z-index: 1000; font-size: 14px;';
+                    document.body.appendChild(statusDiv);
+                    
+                    setTimeout(() => statusDiv.remove(), 5000);
+                });
+        }, 1000);
     </script>
 </body>
 </html>

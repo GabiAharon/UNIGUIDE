@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 הוראות שימוש - עורך תוכן מאובטח</title>
+    <style>
+        body {
+            font-family: Assistant, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            min-height: 100vh;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+        }
+
+        h1 {
+            text-align: center;
+            background: linear-gradient(45deg, #007bff, #00bcd4);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-right: 5px solid #28a745;
+        }
+
+        .step h3 {
+            color: #28a745;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-number {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            color: #856404;
+        }
+
+        .info-box {
+            background: #e8f4ff;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            color: #004085;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            color: #155724;
+        }
+
+        .code-box {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+
+        .big-button {
+            display: block;
+            background: linear-gradient(45deg, #007bff, #00bcd4);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            text-decoration: none;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 20px auto;
+            max-width: 300px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0,123,255,0.3);
+        }
+
+        .big-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,123,255,0.4);
+        }
+
+        .security-note {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .github-token-steps {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .github-token-steps ol {
+            margin: 15px 0;
+            padding-right: 20px;
+        }
+
+        .github-token-steps li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 הוראות שימוש - עורך תוכן מאובטח</h1>
+        
+        <div class="info-box">
+            <h3> מה זה העורך החדש?</h3>
+            <p>עורך תוכן מתקדם שמאפשר לך לערוך את index.html ו-quiz.html ישירות בדפדפן, עם שמירה אוטומטית לגיטהאב בזמן אמת!</p>
+            <ul>
+                <li>🔐 הגנת סיסמה מתקדמת</li>
+                <li>💾 שמירה ישירה לגיטהאב</li>
+                <li>👀 תצוגה מקדימה בזמן אמת</li>
+                <li>🎯 כלי עריכה מובנים</li>
+                <li>📊 סטטיסטיקות ומידע</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">1</span>הגדרת GitHub Token (פעם ראשונה)</h3>
+            <p>כדי שהעורך יוכל לשמור ישירות לגיטהאב, צריך ליצור Personal Access Token:</p>
+            
+            <div class="github-token-steps">
+                <h4>צעדי יצירת הטוקן:</h4>
+                <ol>
+                    <li>עבור ל-<a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Personal access tokens</a></li>
+                    <li>לחץ על "Generate new token (classic)"</li>
+                    <li>תן שם לטוקן: "UNIGuide Editor"</li>
+                    <li>בחר את ההרשאות הבאות:
+                        <ul>
+                            <li>✅ <strong>repo</strong> (Full control of private repositories)</li>
+                            <li>✅ <strong>public_repo</strong> (Access public repositories)</li>
+                        </ul>
+                    </li>
+                    <li>לחץ "Generate token"</li>
+                    <li><strong>חשוב!</strong> העתק את הטוקן מיד - הוא יוצג רק פעם אחת</li>
+                </ol>
+            </div>
+
+            <div class="warning-box">
+                <strong>⚠️ אבטחה:</strong> הטוקן הזה נותן גישה לגיטהאב שלך. שמור אותו במקום בטוח ואל תשתף אותו עם אף אחד!
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">2</span>הגדרת העורך</h3>
+            <p>עכשיו נכניס לעורך ונגדיר אותו:</p>
+            
+            <ol>
+                <li>פתח את <code>secure-editor.html</code></li>
+                <li>הכנס את הסיסמה: <code>unistream2024</code></li>
+                <li>הכנס את הטוקן שיצרת</li>
+                <li>הכנס את שם הרפוזיטורי שלך בפורמט: <code>USERNAME/REPOSITORY</code></li>
+                <li>לחץ "שמור הגדרות"</li>
+            </ol>
+
+            <div class="success-box">
+                <strong>🎉 מעולה!</strong> עכשיו העורך מוכן לעבודה ויוכל לשמור ישירות לגיטהאב!
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">3</span>שימוש בעורך</h3>
+            <p>העורך כולל מספר אזורים:</p>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>📁 רשימת קבצים</h4>
+                    <p>בחר איזה קובץ לערוך - index.html או quiz.html</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>📝 אזור העריכה</h4>
+                    <p>כאן תערוך את הקוד ישירות עם הדגשת תחביר</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>👀 תצוגה מקדימה</h4>
+                    <p>רואה איך השינויים נראים בזמן אמת</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>🛠️ כלי עזר</h4>
+                    <p>כפתורים להוספת תכניות, שאלות נפוצות וקטגוריות</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">4</span>תכונות מתקדמות</h3>
+            
+            <div class="info-box">
+                <h4>⚡ שמירה אוטומטית</h4>
+                <p>העורך שומר אוטומטית לגיטהאב כל 30 שניות אם יש שינויים.</p>
+            </div>
+
+            <div class="info-box">
+                <h4>🎯 כלי הוספת תוכן</h4>
+                <ul>
+                    <li><strong>הוסף תכנית:</strong> מוסיף תבנית לתכנית חדשה</li>
+                    <li><strong>הוסף שאלה נפוצה:</strong> מוסיף שאלה ותשובה חדשה</li>
+                    <li><strong>הוסף קטגוריה:</strong> מוסיף כותרת קטגוריה חדשה</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <h4>⌨️ קיצורי מקלדת</h4>
+                <ul>
+                    <li><strong>Ctrl+S:</strong> שמירה מהירה לגיטהאב</li>
+                    <li><strong>Enter בכניסה:</strong> כניסה מהירה</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">5</span>טיפים לעריכה</h3>
+            
+            <div class="warning-box">
+                <h4>💡 טיפים חשובים:</h4>
+                <ul>
+                    <li><strong>גיבוי:</strong> לפני עריכות גדולות, עשה commit ידני בגיטהאב</li>
+                    <li><strong>בדיקה:</strong> השתמש בתצוגה המקדימה לבדוק שהכל נראה טוב</li>
+                    <li><strong>שמירה:</strong> לחץ על "שמור לגיטהאב" אחרי שינויים חשובים</li>
+                    <li><strong>HTML:</strong> שמור על תחביר HTML נכון למניעת שגיאות</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="security-note">
+            <h3>🔒 הערות אבטחה חשובות</h3>
+            <ul>
+                <li><strong>סיסמה:</strong> ניתן לשנות את הסיסמה בקוד העורך (החלף את 'unistream2024')</li>
+                <li><strong>טוקן:</strong> הטוקן נשמר במחשב שלך בלבד (localStorage)</li>
+                <li><strong>גישה:</strong> רק מי שיודע את הסיסמה יכול להשתמש בעורך</li>
+                <li><strong>היסטוריה:</strong> כל השינויים נשמרים בהיסטוריית הגיטהאב</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="secure-editor.html" class="big-button">
+                🚀 פתח את העורך המאובטח
+            </a>
+            <p style="margin-top: 20px; color: #666;">
+                מוכן לערוך? הכל מוגדר ומוכן לשימוש!
+            </p>
+        </div>
+
+        <div class="success-box" style="margin-top: 30px;">
+            <h3>🎯 מה השגנו?</h3>
+            <ul>
+                <li>✅ עריכה ישירה של הקבצים בדפדפן</li>
+                <li>✅ שמירה אוטומטית לגיטהאב</li>
+                <li>✅ הגנת סיסמה מלאה</li>
+                <li>✅ תצוגה מקדימה בזמן אמת</li>
+                <li>✅ כלי עזר להוספת תוכן</li>
+                <li>✅ סטטיסטיקות ומידע שימושי</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

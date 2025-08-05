@@ -1,6 +1,6 @@
 /**
- * סקריפט Node.js לפרסום אוטומטי לגיטהאב
- * מאפשר פרסום עם הודעות מותאמות אישית או אוטומטיות
+ * Node.js script for automatic publishing to GitHub
+ * Allows publishing with custom or automatic messages
  */
 
 const { execSync } = require('child_process');
@@ -16,40 +16,40 @@ class GitPublisher {
 
     async publish(customMessage = null) {
         try {
-            console.log('🚀 מתחיל פרסום לגיטהאב...\n');
+            console.log('🚀 Starting GitHub publish...\n');
 
-            // בדיקה אם יש שינויים
+            // Check if there are changes
             this.checkForChanges();
 
-            // הוספת קבצים
-            console.log('📁 מוסיף קבצים...');
+            // Add files
+            console.log('📁 Adding files...');
             execSync('git add .', { stdio: 'inherit' });
 
-            // יצירת הודעת commit
+            // Create commit message
             const commitMessage = customMessage || await this.getCommitMessage();
             
-            console.log(`💾 יוצר commit עם ההודעה: "${commitMessage}"`);
+            console.log(`💾 Creating commit with message: "${commitMessage}"`);
             execSync(`git commit -m "${commitMessage}"`, { stdio: 'inherit' });
 
-            // דחיפה לגיטהאב
-            console.log('☁️ דוחף לגיטהאב...');
+            // Push to GitHub
+            console.log('☁️ Pushing to GitHub...');
             execSync('git push', { stdio: 'inherit' });
 
-            console.log('\n✅ הושלם בהצלחה! 🎉');
-            console.log('האתר יתעדכן בעוד כמה דקות ב-Netlify\n');
+            console.log('\n✅ Completed successfully! 🎉');
+            console.log('Website will update in a few minutes on Netlify\n');
 
             this.rl.close();
 
         } catch (error) {
-            console.error('❌ שגיאה בפרסום:', error.message);
+            console.error('❌ Publishing error:', error.message);
             
             if (error.message.includes('nothing to commit')) {
-                console.log('ℹ️  אין שינויים לפרסום');
+                console.log('ℹ️  No changes to publish');
             } else if (error.message.includes('fatal: not a git repository')) {
-                console.log('❌ התיקייה הזו לא מאותחלת כ-Git repository');
-                console.log('הרץ: git init && git remote add origin <URL של הרפוזיטורי שלך>');
+                console.log('❌ This directory is not initialized as Git repository');
+                console.log('Run: git init && git remote add origin <YOUR_REPOSITORY_URL>');
             } else if (error.message.includes('failed to push')) {
-                console.log('❌ בעיה בחיבור לגיטהאב - בדוק את ההרשאות');
+                console.log('❌ Problem connecting to GitHub - check permissions');
             }
             
             this.rl.close();
@@ -61,31 +61,31 @@ class GitPublisher {
         try {
             const status = execSync('git status --porcelain', { encoding: 'utf8' });
             if (!status.trim()) {
-                console.log('ℹ️  אין שינויים לפרסום');
+                console.log('ℹ️  No changes to publish');
                 this.rl.close();
                 process.exit(0);
             }
         } catch (error) {
-            throw new Error('בעיה בבדיקת סטטוס Git');
+            throw new Error('Problem checking Git status');
         }
     }
 
     async getCommitMessage() {
         const args = process.argv.slice(2);
         
-        // אם נשלחה הודעה כפרמטר
+        // If message was sent as parameter
         if (args.length > 0) {
             return args.join(' ');
         }
 
-        // אם רצים במצב שקט (--auto)
+        // If running in quiet mode (--auto)
         if (process.argv.includes('--auto')) {
             return this.generateAutoMessage();
         }
 
-        // שאל את המשתמש על הודעה
+        // Ask user for message
         return new Promise((resolve) => {
-            this.rl.question('הכנס הודעת commit (או לחץ Enter להודעה אוטומטית): ', (answer) => {
+            this.rl.question('Enter commit message (or press Enter for automatic message): ', (answer) => {
                 resolve(answer.trim() || this.generateAutoMessage());
             });
         });
@@ -93,39 +93,39 @@ class GitPublisher {
 
     generateAutoMessage() {
         const now = new Date();
-        const date = now.toLocaleDateString('he-IL');
-        const time = now.toLocaleTimeString('he-IL', { 
+        const date = now.toLocaleDateString('en-US');
+        const time = now.toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit' 
         });
-        return `עדכון תוכן - ${date} ${time}`;
+        return `Content update - ${date} ${time}`;
     }
 
-    // פרסום מהיר ללא שאלות
+    // Quick publish without questions
     async quickPublish() {
         await this.publish(this.generateAutoMessage());
     }
 
-    // הצגת עזרה
+    // Show help
     showHelp() {
         console.log(`
-🚀 סקריפט פרסום לגיטהאב
+🚀 GitHub Publishing Script
 
-שימוש:
-  node publish.js                    - פרסום עם אפשרות להודעה מותאמת
-  node publish.js "הודעה שלי"       - פרסום עם הודעה ספציפית
-  node publish.js --auto            - פרסום אוטומטי עם הודעה אוטומטית
-  node publish.js --quick           - פרסום מהיר (זהה ל--auto)
-  node publish.js --help            - הצגת עזרה זו
+Usage:
+  node publish.js                    - Publish with option for custom message
+  node publish.js "My message"       - Publish with specific message
+  node publish.js --auto            - Auto publish with automatic message
+  node publish.js --quick           - Quick publish (same as --auto)
+  node publish.js --help            - Show this help
 
-דוגמאות:
-  node publish.js "הוספתי נושא חדש על Salesforce"
+Examples:
+  node publish.js "Added new Salesforce topic"
   node publish.js --auto
         `);
     }
 }
 
-// הפעלת הסקריפט
+// Run the script
 const publisher = new GitPublisher();
 
 if (process.argv.includes('--help')) {

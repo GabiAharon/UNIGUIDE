@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+export const INDEX1_CONTENT = `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -1520,7 +1520,7 @@
                         
                         // Show selected category and activate its button
                         document.getElementById(categoryId).style.display = 'block';
-                        document.querySelector(`button[onclick="showFAQCategory('${categoryId}')"]`).classList.add('active');
+                        document.querySelector(\`button[onclick="showFAQCategory('\${categoryId}')"]\`).classList.add('active');
                     }
 
                     // Show operations category by default when FAQ section is opened
@@ -1573,11 +1573,11 @@
 
                         // Display results
                         if (results.length > 0) {
-                            searchResults.innerHTML = results.map(result => `
-                                <div class="search-result-item" onclick="scrollToElement('${result.element.id}')">
-                                    ${result.title}
+                            searchResults.innerHTML = results.map(result => \`
+                                <div class="search-result-item" onclick="scrollToElement('\${result.element.id}')">
+                                    \${result.title}
                                 </div>
-                            `).join('');
+                            \`).join('');
                             searchResults.style.display = 'block';
                         } else {
                             searchResults.innerHTML = '<div class="search-result-item">לא נמצאו תוצאות</div>';
@@ -1714,4 +1714,4 @@
         });
     </script>
 </body>
-</html>
+</html>`;
