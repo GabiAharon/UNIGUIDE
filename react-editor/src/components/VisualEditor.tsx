@@ -448,13 +448,20 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex overflow-hidden">
         {/* Items List (Edit Mode) */}
         {isEditMode && (
-          <div className="w-1/3 bg-gray-50 border-r overflow-y-auto">
-            <div className="p-4">
-              <h3 className="font-bold text-lg mb-4">תוכן האתר</h3>
-              
+          <div className="w-1/3 bg-gray-50 border-r flex flex-col">
+            {/* Fixed Header */}
+            <div className="p-4 border-b bg-white">
+              <h3 className="font-bold text-lg text-gray-800">תוכן האתר לעריכה</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {contentItems.length} פריטים נמצאו • גלול למטה לעוד תוכן
+              </p>
+            </div>
+            
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4">
               {Object.entries(
                 contentItems.reduce((acc, item) => {
                   if (!acc[item.category || 'אחר']) acc[item.category || 'אחר'] = []
@@ -462,36 +469,55 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                   return acc
                 }, {} as Record<string, ContentItem[]>)
               ).map(([category, items]) => (
-                <div key={category} className="mb-6">
-                  <h4 className="font-semibold text-blue-600 mb-2">{category}</h4>
-                  <div className="space-y-2">
+                <div key={category} className="mb-8">
+                  <div className="sticky top-0 bg-gray-50 py-2 mb-3">
+                    <h4 className="font-semibold text-blue-600 text-lg border-b border-blue-200 pb-1">
+                      {category} ({items.length})
+                    </h4>
+                  </div>
+                  <div className="space-y-3">
                     {items.map((item) => (
                       <div
                         key={item.id}
-                        className="p-3 bg-white rounded-lg border hover:shadow-md transition-shadow"
+                        className="p-4 bg-white rounded-lg border hover:shadow-lg transition-all duration-200 hover:border-blue-300"
                       >
                         <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h5 className="font-medium text-gray-900 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-gray-900 mb-2 text-base">
                               {item.title}
                             </h5>
-                            <p className="text-sm text-gray-600 line-clamp-2">
-                              {item.description.substring(0, 100)}...
+                            <p className="text-sm text-gray-600 mb-3 leading-relaxed">
+                              {item.description.length > 150 
+                                ? `${item.description.substring(0, 150)}...` 
+                                : item.description}
                             </p>
-                          </div>
-                          <div className="flex gap-1 ml-2">
-                            <button
-                              onClick={() => handleEditItem(item)}
-                              className="p-1 text-blue-500 hover:bg-blue-50 rounded"
-                            >
-                              <Edit size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteItem(item)}
-                              className="p-1 text-red-500 hover:bg-red-50 rounded"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="flex items-center justify-between">
+                              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                                {item.type === 'program' ? 'תכנית' :
+                                 item.type === 'faq' ? 'שאלה נפוצה' :
+                                 item.type === 'system' ? 'מערכת' :
+                                 item.type === 'event' ? 'אירוע' :
+                                 item.type === 'quiz' ? 'שאלת מבחן' : 'מסמך'}
+                              </span>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditItem(item)}
+                                  className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors border border-blue-200 hover:border-blue-300"
+                                  title="ערוך פריט"
+                                >
+                                  <Edit size={14} className="inline mr-1" />
+                                  ערוך
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteItem(item)}
+                                  className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors border border-red-200 hover:border-red-300"
+                                  title="מחק פריט"
+                                >
+                                  <Trash2 size={14} className="inline mr-1" />
+                                  מחק
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -499,6 +525,21 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                   </div>
                 </div>
               ))}
+              
+              {contentItems.length === 0 && (
+                <div className="text-center text-gray-500 mt-12">
+                  <div className="bg-gray-100 rounded-lg p-8">
+                    <h4 className="text-lg font-medium mb-2">אין תוכן לעריכה</h4>
+                    <p className="text-sm mb-4">לחץ על "הוסף תוכן" כדי להתחיל ליצור תוכן חדש</p>
+                    <button
+                      onClick={() => setShowAddModal(true)}
+                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                    >
+                      + הוסף תוכן ראשון
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
