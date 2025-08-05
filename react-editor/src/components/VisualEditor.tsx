@@ -183,47 +183,71 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       const scriptMatch = htmlContent.match(/const questions = \[([\s\S]*?)\];/)
       if (scriptMatch) {
         try {
-          // More robust parsing of questions
+          // More robust parsing - split by question objects
           const questionsText = scriptMatch[1]
           
-          // Split by question objects more carefully
-          const questionPattern = /\{\s*question:\s*["'](.*?)["'],\s*options:\s*\[([\s\S]*?)\],\s*correct:\s*(\d+)\s*\}/g
-          let match
-          let questionIndex = 0
+          // Split by closing brace + comma pattern to separate questions
+          const questionBlocks = questionsText.split(/\},\s*\{/)
           
-          while ((match = questionPattern.exec(questionsText)) !== null) {
-            const questionText = match[1]
-            const optionsText = match[2]
-            const correct = parseInt(match[3])
-            
-            // Parse options more carefully
-            const options = optionsText
-              .split(',')
-              .map(opt => opt.trim().replace(/^["']|["']$/g, ''))
-              .filter(opt => opt.length > 0)
-            
-            if (questionText && options.length > 0) {
-              items.push({
-                id: `quiz-question-${questionIndex}`,
-                type: 'quiz',
-                title: questionText,
-                description: `תשובה נכונה: ${options[correct] || 'לא זוהתה'}`,
-                category: 'שאלות מבחן',
-                options,
-                correct
-              })
-              questionIndex++
+          questionBlocks.forEach((block, index) => {
+            // Clean up the block - add missing braces
+            let cleanBlock = block.trim()
+            if (!cleanBlock.startsWith('{')) {
+              cleanBlock = '{' + cleanBlock
             }
-          }
+            if (!cleanBlock.endsWith('}')) {
+              cleanBlock = cleanBlock + '}'
+            }
+            
+            // Extract question text
+            const questionMatch = cleanBlock.match(/question:\s*["'](.*?)["']/)
+            
+            // Extract options array
+            const optionsMatch = cleanBlock.match(/options:\s*\[([\s\S]*?)\]/)
+            
+            // Extract correct answer
+            const correctMatch = cleanBlock.match(/correct:\s*(\d+)/)
+            
+            if (questionMatch) {
+              const questionText = questionMatch[1]
+              let options: string[] = []
+              let correct = 0
+              
+              if (optionsMatch) {
+                const optionsText = optionsMatch[1]
+                // Split options more carefully, handling quotes and commas
+                options = optionsText
+                  .split(/",\s*"/)
+                  .map(opt => opt.trim().replace(/^["']|["']$/g, ''))
+                  .filter(opt => opt.length > 0)
+              }
+              
+              if (correctMatch) {
+                correct = parseInt(correctMatch[1])
+              }
+              
+              if (questionText && options.length > 0) {
+                items.push({
+                  id: `quiz-question-${index}`,
+                  type: 'quiz',
+                  title: questionText,
+                  description: `תשובה נכונה: ${options[correct] || 'לא זוהתה'}`,
+                  category: 'שאלות מבחן',
+                  options,
+                  correct
+                })
+              }
+            }
+          })
           
-          console.log(`Found ${questionIndex} quiz questions`)
+          console.log(`Found ${items.filter(item => item.type === 'quiz').length} quiz questions`)
         } catch (error) {
           console.error('Error parsing quiz questions:', error)
         }
       }
     }
 
-    // Extract links (a tags)
+    // Extract links (a tags) - but skip navigation links
     const links = doc.querySelectorAll('a[href]')
     console.log(`Found ${links.length} links`)
     
@@ -232,7 +256,10 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       const linkText = link.textContent?.trim() || ''
       const linkId = link.id || `link-${index}`
       
-      if (linkText && href) {
+      // Skip navigation links that are just anchors
+      const isNavLink = href.startsWith('#') && linkText.length < 50
+      
+      if (linkText && href && !isNavLink) {
         items.push({
           id: linkId,
           type: 'link',
@@ -244,23 +271,28 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       }
     })
 
-    // Extract buttons (button tags and styled links)
-    const buttons = doc.querySelectorAll('button, .btn, .button, a.button, a.btn')
+    // Extract buttons (button tags and styled elements)
+    const buttons = doc.querySelectorAll('button, .quiz-button, .ready-button, .category-btn, .collapsible-button')
     console.log(`Found ${buttons.length} buttons`)
     
     buttons.forEach((button, index) => {
       const buttonText = button.textContent?.trim() || ''
-      const buttonHref = button.getAttribute('href') || button.getAttribute('onclick') || ''
+      const buttonHref = button.getAttribute('href') || ''
+      const buttonOnclick = button.getAttribute('onclick') || ''
       const buttonId = button.id || `button-${index}`
       
-      if (buttonText) {
+      if (buttonText && buttonText.length < 100) { // Skip very long text that's not really a button
+        let action = ''
+        if (buttonHref) action = buttonHref
+        else if (buttonOnclick) action = buttonOnclick
+        
         items.push({
           id: buttonId,
           type: 'button',
           title: buttonText,
-          description: buttonHref ? `כפתור עם פעולה: ${buttonHref}` : 'כפתור',
+          description: action ? `כפתור עם פעולה: ${action}` : 'כפתור',
           category: 'כפתורים',
-          url: buttonHref
+          url: action
         })
       }
     })
@@ -579,7 +611,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       }
     )
 
-    // Add edit buttons to buttons
+    // Add edit buttons to regular buttons
     modifiedContent = modifiedContent.replace(
       /<button([^>]*)>(.*?)<\/button>/g,
       (match, attributes, innerText) => {
@@ -621,6 +653,66 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
               onmouseout="this.style.border='2px dashed transparent'; this.parentElement.querySelector('.edit-controls').style.display='none';">
               ${innerText}
             </button>
+            <div style="position: absolute; top: -10px; right: -10px; display: none; gap: 4px; z-index: 1000;" class="edit-controls">
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${buttonItem.id}'}, '*')" 
+                style="background: #ec4899; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#db2777';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ec4899';">
+                🔘 ערוך כפתור
+              </button>
+            </div>
+          </div>`
+        }
+        return match
+      }
+    )
+
+    // Add edit buttons to styled button links (quiz-button, ready-button, etc.)
+    modifiedContent = modifiedContent.replace(
+      /<a([^>]*class="[^"]*(?:quiz-button|ready-button|category-btn|collapsible-button)[^"]*"[^>]*)>(.*?)<\/a>/g,
+      (match, attributes, innerText) => {
+        const idMatch = attributes.match(/id="([^"]*)"/)
+        const hrefMatch = attributes.match(/href="([^"]*)"/)
+        const onclickMatch = attributes.match(/onclick="([^"]*)"/)
+        const id = idMatch ? idMatch[1] : null
+        const href = hrefMatch ? hrefMatch[1] : ''
+        const onclick = onclickMatch ? onclickMatch[1] : ''
+        
+        let buttonItem = null
+        if (id) {
+          buttonItem = contentItems.find(item => item.id === id && item.type === 'button')
+        }
+        
+        if (!buttonItem) {
+          const buttonText = innerText.trim()
+          buttonItem = contentItems.find(item => 
+            item.type === 'button' && 
+            item.title.trim() === buttonText
+          )
+        }
+        
+        if (!buttonItem) {
+          const tempId = id || `temp-styled-button-${Date.now()}-${Math.random()}`
+          const action = href || onclick
+          buttonItem = {
+            id: tempId,
+            type: 'button' as const,
+            title: innerText.trim(),
+            description: action ? `כפתור עם פעולה: ${action}` : 'כפתור מעוצב',
+            category: 'כפתורים',
+            url: action
+          }
+          contentItems.push(buttonItem)
+        }
+        
+        if (buttonItem) {
+          const newAttributes = id ? attributes : `${attributes} id="${buttonItem.id}"`
+          return `<div style="position: relative; display: inline-block; margin: 5px;">
+            <a${newAttributes} style="position: relative; border: 2px dashed transparent; transition: all 0.3s; border-radius: 4px; display: inline-block;" 
+              onmouseover="this.style.border='2px dashed #ec4899'; this.parentElement.querySelector('.edit-controls').style.display='flex';" 
+              onmouseout="this.style.border='2px dashed transparent'; this.parentElement.querySelector('.edit-controls').style.display='none';">
+              ${innerText}
+            </a>
             <div style="position: absolute; top: -10px; right: -10px; display: none; gap: 4px; z-index: 1000;" class="edit-controls">
               <button onclick="window.parent.postMessage({action: 'edit', id: '${buttonItem.id}'}, '*')" 
                 style="background: #ec4899; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
