@@ -10,10 +10,12 @@ interface VisualEditorProps {
 
 interface ContentItem {
   id: string
-  type: 'program' | 'faq' | 'event' | 'system' | 'document'
+  type: 'program' | 'faq' | 'event' | 'system' | 'document' | 'quiz'
   title: string
   description: string
   category?: string
+  options?: string[]
+  correct?: number
 }
 
 const VisualEditor: React.FC<VisualEditorProps> = ({ 
@@ -29,7 +31,9 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
     type: 'program',
     title: '',
     description: '',
-    category: ''
+    category: '',
+    options: ['', '', '', ''],
+    correct: 0
   })
   const previewRef = useRef<HTMLIFrameElement>(null)
 
@@ -39,18 +43,34 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
     const doc = parser.parseFromString(htmlContent, 'text/html')
     const items: ContentItem[] = []
 
-    // Extract programs
-    const programs = doc.querySelectorAll('#programs + .dictionary-item, .dictionary-item[id*="program"]')
-    programs.forEach((item, index) => {
+    // Extract all dictionary items (programs, systems, etc.)
+    const allDictionaryItems = doc.querySelectorAll('.dictionary-item')
+    allDictionaryItems.forEach((item, index) => {
       const titleEl = item.querySelector('.term')
       const descEl = item.querySelector('.definition')
       if (titleEl && descEl) {
+        // Determine type based on ID or context
+        let type: ContentItem['type'] = 'program'
+        let category = 'תכניות'
+        
+        const itemId = item.id || item.getAttribute('id') || ''
+        if (itemId.includes('system') || itemId.includes('salesforce') || itemId.includes('uninet') || itemId.includes('sharepoint')) {
+          type = 'system'
+          category = 'מערכות'
+        } else if (itemId.includes('event')) {
+          type = 'event'
+          category = 'אירועים'
+        } else if (itemId.includes('document')) {
+          type = 'document'
+          category = 'מסמכים'
+        }
+
         items.push({
-          id: item.id || `program-${index}`,
-          type: 'program',
-          title: titleEl.textContent || '',
-          description: descEl.textContent || '',
-          category: 'תכניות'
+          id: itemId || `item-${index}`,
+          type,
+          title: titleEl.textContent?.trim() || '',
+          description: descEl.textContent?.trim() || descEl.innerHTML?.trim() || '',
+          category
         })
       }
     })
@@ -64,28 +84,109 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         items.push({
           id: `faq-${index}`,
           type: 'faq',
-          title: questionEl.textContent || '',
-          description: answerEl.textContent || '',
+          title: questionEl.textContent?.trim() || '',
+          description: answerEl.textContent?.trim() || answerEl.innerHTML?.trim() || '',
           category: 'שאלות נפוצות'
         })
       }
     })
 
-    // Extract systems
-    const systems = doc.querySelectorAll('#systems + .dictionary-item, .dictionary-item[id*="system"]')
-    systems.forEach((item, index) => {
-      const titleEl = item.querySelector('.term')
-      const descEl = item.querySelector('.definition')
-      if (titleEl && descEl) {
-        items.push({
-          id: item.id || `system-${index}`,
-          type: 'system',
-          title: titleEl.textContent || '',
-          description: descEl.textContent || '',
-          category: 'מערכות'
-        })
+    // Extract sections with headers (h2, h3, etc.)
+    const headers = doc.querySelectorAll('h2, h3, h4')
+    headers.forEach((header, index) => {
+      const headerText = header.textContent?.trim() || ''
+      const headerId = header.id || `header-${index}`
+      
+      // Get content after header until next header
+      let content = ''
+      let nextElement = header.nextElementSibling
+      while (nextElement && !nextElement.matches('h1, h2, h3, h4, h5, h6')) {
+        if (nextElement.textContent?.trim()) {
+          content += nextElement.textContent.trim() + ' '
+        }
+        nextElement = nextElement.nextElementSibling
+      }
+
+      if (headerText && content.trim()) {
+        // Determine category based on header text
+        let category = 'כללי'
+        let type: ContentItem['type'] = 'document'
+        
+        if (headerText.includes('תכנית') || headerText.includes('תכניות')) {
+          category = 'תכניות'
+          type = 'program'
+        } else if (headerText.includes('שאלות נפוצות') || headerText.includes('שו"ת')) {
+          category = 'שאלות נפוצות'
+          type = 'faq'
+        } else if (headerText.includes('מערכת') || headerText.includes('מערכות')) {
+          category = 'מערכות'
+          type = 'system'
+        } else if (headerText.includes('אירוע') || headerText.includes('אירועים')) {
+          category = 'אירועים'
+          type = 'event'
+        }
+
+        // Don't add if we already have this as a dictionary item
+        const existingItem = items.find(item => item.title === headerText)
+        if (!existingItem) {
+          items.push({
+            id: headerId,
+            type,
+            title: headerText,
+            description: content.trim().substring(0, 500) + (content.length > 500 ? '...' : ''),
+            category
+          })
+        }
       }
     })
+
+    // Extract quiz questions if this is quiz.html
+    if (htmlContent.includes('const questions = [')) {
+      const scriptMatch = htmlContent.match(/const questions = \[([\s\S]*?)\];/)
+      if (scriptMatch) {
+        try {
+          // Parse individual question objects
+          const questionsText = scriptMatch[1]
+          const questionObjects = questionsText.split('},').map(q => q.trim() + '}')
+          
+          questionObjects.forEach((questionObj, index) => {
+            const questionMatch = questionObj.match(/question:\s*["'](.*?)["']/)
+            const optionsMatch = questionObj.match(/options:\s*\[([\s\S]*?)\]/)
+            const correctMatch = questionObj.match(/correct:\s*(\d+)/)
+            
+            if (questionMatch) {
+              const questionText = questionMatch[1]
+              let options: string[] = []
+              let correct = 0
+              
+              if (optionsMatch) {
+                const optionsText = optionsMatch[1]
+                options = optionsText
+                  .split(',')
+                  .map(opt => opt.trim().replace(/^["']|["']$/g, ''))
+                  .filter(opt => opt.length > 0)
+              }
+              
+              if (correctMatch) {
+                correct = parseInt(correctMatch[1])
+              }
+              
+              items.push({
+                id: `quiz-question-${index}`,
+                type: 'quiz',
+                title: questionText,
+                description: `תשובה נכונה: ${options[correct] || 'לא זוהתה'}`,
+                category: 'שאלות מבחן',
+                options,
+                correct
+              })
+            }
+          })
+        } catch (error) {
+          console.log('Could not parse quiz questions:', error)
+        }
+      }
+    }
 
     return items
   }
@@ -107,38 +208,89 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
 
   const handleAddItem = () => {
     const itemId = `${newItem.type}-${Date.now()}`
-    const itemHTML = generateItemHTML(newItem, itemId)
     
-    // Find the appropriate section and add the item
-    let updatedContent = content
-    const sectionMap = {
-      'program': 'programs',
-      'faq': 'faq',
-      'system': 'systems',
-      'event': 'events',
-      'document': 'documents'
-    }
-    
-    const sectionId = sectionMap[newItem.type]
-    const sectionRegex = new RegExp(`(<h2[^>]*id="${sectionId}"[^>]*>.*?</h2>)`, 'i')
-    
-    if (sectionRegex.test(updatedContent)) {
-      updatedContent = updatedContent.replace(
-        sectionRegex,
-        `$1\n\n${itemHTML}`
-      )
-    } else {
-      // If section doesn't exist, add it at the end
-      const insertPoint = updatedContent.lastIndexOf('</div>')
-      if (insertPoint > -1) {
-        updatedContent = updatedContent.slice(0, insertPoint) + 
-          `\n\n<h2 id="${sectionId}" style="color: #007bff; margin: 40px 0 20px;">${newItem.category}</h2>\n${itemHTML}\n\n` +
-          updatedContent.slice(insertPoint)
+    // Special handling for quiz questions
+    if (newItem.type === 'quiz') {
+      // Add question to the questions array in the script
+      const questionObj = {
+        question: newItem.title,
+        options: newItem.options || [],
+        correct: newItem.correct || 0
       }
+      
+      const questionString = `            {
+                question: "${questionObj.question}",
+                options: [
+                    "${questionObj.options[0] || ''}",
+                    "${questionObj.options[1] || ''}",
+                    "${questionObj.options[2] || ''}",
+                    "${questionObj.options[3] || ''}"
+                ],
+                correct: ${questionObj.correct}
+            }`
+      
+      // Find the questions array and add the new question
+      const questionsMatch = content.match(/(const questions = \[)([\s\S]*?)(\];)/)
+      if (questionsMatch) {
+        const beforeQuestions = questionsMatch[1]
+        const existingQuestions = questionsMatch[2]
+        const afterQuestions = questionsMatch[3]
+        
+        const updatedQuestions = existingQuestions.trim() + 
+          (existingQuestions.trim() ? ',\n' : '') + questionString
+        
+        const updatedContent = content.replace(
+          /const questions = \[[\s\S]*?\];/,
+          beforeQuestions + updatedQuestions + '\n        ' + afterQuestions
+        )
+        onChange(updatedContent)
+      }
+    } else {
+      // Regular content item
+      const itemHTML = generateItemHTML(newItem, itemId)
+      
+      // Find the appropriate section and add the item
+      let updatedContent = content
+      const sectionMap = {
+        'program': 'programs',
+        'faq': 'faq',
+        'system': 'systems',
+        'event': 'events',
+        'document': 'documents'
+      }
+      
+      const sectionId = sectionMap[newItem.type as keyof typeof sectionMap]
+      if (sectionId) {
+        const sectionRegex = new RegExp(`(<h2[^>]*id="${sectionId}"[^>]*>.*?</h2>)`, 'i')
+        
+        if (sectionRegex.test(updatedContent)) {
+          updatedContent = updatedContent.replace(
+            sectionRegex,
+            `$1\n\n${itemHTML}`
+          )
+        } else {
+          // If section doesn't exist, add it at the end
+          const insertPoint = updatedContent.lastIndexOf('</div>')
+          if (insertPoint > -1) {
+            updatedContent = updatedContent.slice(0, insertPoint) + 
+              `\n\n<h2 id="${sectionId}" style="color: #007bff; margin: 40px 0 20px;">${newItem.category}</h2>\n${itemHTML}\n\n` +
+              updatedContent.slice(insertPoint)
+          }
+        }
+      }
+      
+      onChange(updatedContent)
     }
     
-    onChange(updatedContent)
-    setNewItem({ id: '', type: 'program', title: '', description: '', category: '' })
+    setNewItem({ 
+      id: '', 
+      type: 'program', 
+      title: '', 
+      description: '', 
+      category: '',
+      options: ['', '', '', ''],
+      correct: 0
+    })
     setShowAddModal(false)
   }
 
@@ -149,12 +301,54 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
   const handleUpdateItem = () => {
     if (!editingItem) return
 
-    let updatedContent = content
-    const itemRegex = new RegExp(`<div[^>]*id="${editingItem.id}"[^>]*>.*?</div>(?:\\s*</div>)?`, 'gis')
-    const newItemHTML = generateItemHTML(editingItem, editingItem.id)
+    if (editingItem.type === 'quiz') {
+      // Update quiz question in the questions array
+      const questionIndex = parseInt(editingItem.id.replace('quiz-question-', ''))
+      const questionObj = {
+        question: editingItem.title,
+        options: editingItem.options || [],
+        correct: editingItem.correct || 0
+      }
+      
+      const questionString = `            {
+                question: "${questionObj.question}",
+                options: [
+                    "${questionObj.options[0] || ''}",
+                    "${questionObj.options[1] || ''}",
+                    "${questionObj.options[2] || ''}",
+                    "${questionObj.options[3] || ''}"
+                ],
+                correct: ${questionObj.correct}
+            }`
+      
+      // Find and replace the specific question
+      const questionsMatch = content.match(/(const questions = \[)([\s\S]*?)(\];)/)
+      if (questionsMatch) {
+        const questionsText = questionsMatch[2]
+        const questionObjects = questionsText.split('},').map((q, index) => {
+          if (index === questionIndex) {
+            return questionString
+          }
+          return q.trim() + (index < questionsText.split('},').length - 1 ? '}' : '')
+        })
+        
+        const updatedQuestions = questionObjects.join(',\n')
+        const updatedContent = content.replace(
+          /const questions = \[[\s\S]*?\];/,
+          `const questions = [\n${updatedQuestions}\n        ];`
+        )
+        onChange(updatedContent)
+      }
+    } else {
+      // Regular content item update
+      let updatedContent = content
+      const itemRegex = new RegExp(`<div[^>]*id="${editingItem.id}"[^>]*>.*?</div>(?:\\s*</div>)?`, 'gis')
+      const newItemHTML = generateItemHTML(editingItem, editingItem.id)
+      
+      updatedContent = updatedContent.replace(itemRegex, newItemHTML)
+      onChange(updatedContent)
+    }
     
-    updatedContent = updatedContent.replace(itemRegex, newItemHTML)
-    onChange(updatedContent)
     setEditingItem(null)
   }
 
@@ -185,6 +379,9 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                         ${item.description}
                     </div>
                 </div>`
+      case 'quiz':
+        // Quiz questions are handled in JavaScript, return a comment
+        return `<!-- Quiz question: ${item.title} -->`
       case 'system':
         return `
                 <div id="${id}" class="dictionary-item">
@@ -193,6 +390,18 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                         ${item.description}
                     </div>
                 </div>`
+      case 'event':
+        return `
+                <div id="${id}" class="dictionary-item">
+                    <div class="term">${item.title}</div>
+                    <div class="definition">
+                        ${item.description}
+                    </div>
+                </div>`
+      case 'document':
+        return `
+                <h3 id="${id}">${item.title}</h3>
+                <p>${item.description}</p>`
       default:
         return `
                 <div id="${id}" class="dictionary-item">
@@ -307,12 +516,12 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       {/* Add Item Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">הוסף תוכן חדש</h3>
+          <div className="bg-white rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto shadow-2xl">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">הוסף תוכן חדש</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">סוג התוכן</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700">סוג התוכן</label>
                 <select
                   value={newItem.type}
                   onChange={(e) => setNewItem({
@@ -321,51 +530,103 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                     category: e.target.value === 'program' ? 'תכניות' :
                              e.target.value === 'faq' ? 'שאלות נפוצות' :
                              e.target.value === 'system' ? 'מערכות' :
-                             e.target.value === 'event' ? 'אירועים' : 'מסמכים'
+                             e.target.value === 'event' ? 'אירועים' :
+                             e.target.value === 'quiz' ? 'שאלות מבחן' : 'מסמכים'
                   })}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="program">תכנית</option>
                   <option value="faq">שאלה נפוצה</option>
                   <option value="system">מערכת</option>
                   <option value="event">אירוע</option>
                   <option value="document">מסמך</option>
+                  <option value="quiz">שאלת מבחן</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">כותרת</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700">כותרת</label>
                 <input
                   type="text"
                   value={newItem.title}
                   onChange={(e) => setNewItem({...newItem, title: e.target.value})}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   placeholder="הכנס כותרת..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">תיאור</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  {newItem.type === 'quiz' ? 'שאלה' : 'תיאור'}
+                </label>
                 <textarea
-                  value={newItem.description}
-                  onChange={(e) => setNewItem({...newItem, description: e.target.value})}
-                  className="w-full p-2 border rounded-lg h-32"
-                  placeholder="הכנס תיאור מפורט..."
+                  value={newItem.type === 'quiz' ? newItem.title : newItem.description}
+                  onChange={(e) => newItem.type === 'quiz' 
+                    ? setNewItem({...newItem, title: e.target.value})
+                    : setNewItem({...newItem, description: e.target.value})
+                  }
+                  className="w-full p-3 border border-gray-300 rounded-lg h-32 text-gray-800 bg-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
+                  placeholder={newItem.type === 'quiz' ? "הכנס את השאלה..." : "הכנס תיאור מפורט..."}
                 />
               </div>
+
+              {newItem.type === 'quiz' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">אופציות תשובה</label>
+                    {newItem.options?.map((option, index) => (
+                      <div key={index} className="flex items-center gap-2 mb-2">
+                        <input
+                          type="radio"
+                          name="correct-answer"
+                          checked={newItem.correct === index}
+                          onChange={() => setNewItem({...newItem, correct: index})}
+                          className="text-blue-600"
+                        />
+                        <input
+                          type="text"
+                          value={option}
+                          onChange={(e) => {
+                            const newOptions = [...(newItem.options || [])]
+                            newOptions[index] = e.target.value
+                            setNewItem({...newItem, options: newOptions})
+                          }}
+                          className="flex-1 p-2 border border-gray-300 rounded-lg text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          placeholder={`אופציה ${index + 1}`}
+                        />
+                      </div>
+                    ))}
+                    <p className="text-sm text-gray-600 mt-2">
+                      בחר את התשובה הנכונה על ידי לחיצה על הרדיו כפתור
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {newItem.type !== 'quiz' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">תיאור</label>
+                  <textarea
+                    value={newItem.description}
+                    onChange={(e) => setNewItem({...newItem, description: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg h-32 text-gray-800 bg-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
+                    placeholder="הכנס תיאור מפורט..."
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="px-5 py-2 text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
               >
                 ביטול
               </button>
               <button
                 onClick={handleAddItem}
                 disabled={!newItem.title || !newItem.description}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                className="px-5 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 הוסף
               </button>
@@ -377,40 +638,75 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       {/* Edit Item Modal */}
       {editingItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">ערוך תוכן</h3>
+          <div className="bg-white rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto shadow-2xl">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">ערוך תוכן</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">כותרת</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  {editingItem.type === 'quiz' ? 'שאלה' : 'כותרת'}
+                </label>
                 <input
                   type="text"
                   value={editingItem.title}
                   onChange={(e) => setEditingItem({...editingItem, title: e.target.value})}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">תיאור</label>
-                <textarea
-                  value={editingItem.description}
-                  onChange={(e) => setEditingItem({...editingItem, description: e.target.value})}
-                  className="w-full p-2 border rounded-lg h-32"
-                />
-              </div>
+              {editingItem.type === 'quiz' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">אופציות תשובה</label>
+                  {editingItem.options?.map((option, index) => (
+                    <div key={index} className="flex items-center gap-2 mb-2">
+                      <input
+                        type="radio"
+                        name="edit-correct-answer"
+                        checked={editingItem.correct === index}
+                        onChange={() => setEditingItem({...editingItem, correct: index})}
+                        className="text-blue-600"
+                      />
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => {
+                          const newOptions = [...(editingItem.options || [])]
+                          newOptions[index] = e.target.value
+                          setEditingItem({...editingItem, options: newOptions})
+                        }}
+                        className="flex-1 p-2 border border-gray-300 rounded-lg text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                        placeholder={`אופציה ${index + 1}`}
+                      />
+                    </div>
+                  ))}
+                  <p className="text-sm text-gray-600 mt-2">
+                    בחר את התשובה הנכונה על ידי לחיצה על הרדיו כפתור
+                  </p>
+                </div>
+              )}
+
+              {editingItem.type !== 'quiz' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">תיאור</label>
+                  <textarea
+                    value={editingItem.description}
+                    onChange={(e) => setEditingItem({...editingItem, description: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg h-32 text-gray-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setEditingItem(null)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="px-5 py-2 text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
               >
                 ביטול
               </button>
               <button
                 onClick={handleUpdateItem}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                className="px-5 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
                 עדכן
               </button>
