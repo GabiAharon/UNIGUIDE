@@ -193,18 +193,156 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
 
   const contentItems = parseContent(content)
 
-  // Update preview
+  // Update preview with edit buttons if in edit mode
   useEffect(() => {
     if (previewRef.current) {
       const iframe = previewRef.current
       const doc = iframe.contentDocument
       if (doc) {
+        let displayContent = content
+        
+        // If in edit mode, inject edit buttons into the content
+        if (isEditMode) {
+          displayContent = injectEditButtons(content)
+        }
+        
         doc.open()
-        doc.write(content)
+        doc.write(displayContent)
         doc.close()
+        
+        // Add event listeners for edit buttons if in edit mode
+        if (isEditMode) {
+          addEditButtonListeners()
+        }
       }
     }
-  }, [content])
+  }, [content, isEditMode])
+
+  // Inject edit buttons into HTML content
+  const injectEditButtons = (htmlContent: string): string => {
+    let modifiedContent = htmlContent
+    
+    // Add edit buttons to dictionary items
+    modifiedContent = modifiedContent.replace(
+      /<div([^>]*class="dictionary-item"[^>]*id="([^"]*)"[^>]*)>([\s\S]*?)<\/div>/g,
+      (match, attributes, id, innerContent) => {
+        const item = contentItems.find(item => item.id === id)
+        if (item) {
+          return `<div${attributes} style="position: relative; border: 2px dashed transparent; padding: 15px; margin: 10px 0; transition: all 0.3s; border-radius: 8px;" 
+            onmouseover="this.style.border='2px dashed #3b82f6'; this.style.backgroundColor='#f0f9ff'; this.querySelector('.edit-controls').style.display='flex';" 
+            onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
+            ${innerContent}
+            <div style="position: absolute; top: 8px; right: 8px; display: none; gap: 8px; z-index: 1000;" class="edit-controls">
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${id}'}, '*')" 
+                style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#2563eb';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#3b82f6';">
+                ✏️ ערוך
+              </button>
+              <button onclick="window.parent.postMessage({action: 'delete', id: '${id}'}, '*')" 
+                style="background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#dc2626';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ef4444';">
+                🗑️ מחק
+              </button>
+            </div>
+          </div>`
+        }
+        return match
+      }
+    )
+    
+    // Add edit buttons to FAQ cards
+    modifiedContent = modifiedContent.replace(
+      /<div([^>]*class="faq-card"[^>]*)>([\s\S]*?)<\/div>/g,
+      (match, attributes, innerContent) => {
+        const faqMatch = innerContent.match(/<div class="faq-question">(.*?)<\/div>/)
+        if (faqMatch) {
+          const questionText = faqMatch[1].trim()
+          const faqItem = contentItems.find(item => item.title.trim() === questionText && item.type === 'faq')
+          if (faqItem) {
+            return `<div${attributes} style="position: relative; border: 2px dashed transparent; padding: 15px; margin: 10px 0; transition: all 0.3s; border-radius: 8px;" 
+              onmouseover="this.style.border='2px dashed #10b981'; this.style.backgroundColor='#f0fdf4'; this.querySelector('.edit-controls').style.display='flex';" 
+              onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
+              ${innerContent}
+              <div style="position: absolute; top: 8px; right: 8px; display: none; gap: 8px; z-index: 1000;" class="edit-controls">
+                <button onclick="window.parent.postMessage({action: 'edit', id: '${faqItem.id}'}, '*')" 
+                  style="background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                  onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#059669';" 
+                  onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#10b981';">
+                  ✏️ ערוך שאלה
+                </button>
+                <button onclick="window.parent.postMessage({action: 'delete', id: '${faqItem.id}'}, '*')" 
+                  style="background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                  onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#dc2626';" 
+                  onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ef4444';">
+                  🗑️ מחק
+                </button>
+              </div>
+            </div>`
+          }
+        }
+        return match
+      }
+    )
+
+    // Add edit buttons to headers (h2, h3, h4)
+    modifiedContent = modifiedContent.replace(
+      /<(h[2-4])([^>]*id="([^"]*)"[^>]*)>(.*?)<\/h[2-4]>/g,
+      (match, tag, attributes, id, innerText) => {
+        const headerItem = contentItems.find(item => item.id === id)
+        if (headerItem) {
+          return `<${tag}${attributes} style="position: relative; border: 2px dashed transparent; padding: 10px; margin: 15px 0; transition: all 0.3s; border-radius: 8px;" 
+            onmouseover="this.style.border='2px dashed #f59e0b'; this.style.backgroundColor='#fffbeb'; this.querySelector('.edit-controls').style.display='flex';" 
+            onmouseout="this.style.border='2px dashed transparent'; this.style.backgroundColor='transparent'; this.querySelector('.edit-controls').style.display='none';">
+            ${innerText}
+            <div style="position: absolute; top: 5px; right: 5px; display: none; gap: 6px; z-index: 1000;" class="edit-controls">
+              <button onclick="window.parent.postMessage({action: 'edit', id: '${id}'}, '*')" 
+                style="background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#d97706';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#f59e0b';">
+                ✏️ ערוך כותרת
+              </button>
+              <button onclick="window.parent.postMessage({action: 'delete', id: '${id}'}, '*')" 
+                style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" 
+                onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#dc2626';" 
+                onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#ef4444';">
+                🗑️ מחק
+              </button>
+            </div>
+          </${tag}>`
+        }
+        return match
+      }
+    )
+    
+    return modifiedContent
+  }
+
+  // Add event listeners for edit buttons
+  const addEditButtonListeners = () => {
+    // Listen for messages from iframe
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.action && event.source === previewRef.current?.contentWindow) {
+        const { action, id } = event.data
+        const item = contentItems.find(item => item.id === id)
+        if (item) {
+          if (action === 'edit') {
+            handleEditItem(item)
+          } else if (action === 'delete') {
+            if (confirm(`האם אתה בטוח שברצונך למחוק את "${item.title}"?`)) {
+              handleDeleteItem(item)
+            }
+          }
+        }
+      }
+    }
+    
+    // Remove existing listener if any
+    window.removeEventListener('message', handleMessage)
+    // Add new listener
+    window.addEventListener('message', handleMessage)
+  }
 
   const handleAddItem = () => {
     const itemId = `${newItem.type}-${Date.now()}`
@@ -443,7 +581,14 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         
         <div className="flex items-center gap-2">
           <Eye size={18} className="text-gray-500" />
-          <span className="text-gray-700">תצוגה מקדימה</span>
+          <span className="text-gray-700">
+            {isEditMode ? 'תצוגה מקדימה + עריכה ישירה' : 'תצוגה מקדימה'}
+          </span>
+          {isEditMode && (
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              העבר עכבר על תוכן לעריכה
+            </span>
+          )}
         </div>
       </div>
 
