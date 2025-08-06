@@ -183,79 +183,57 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       const scriptMatch = htmlContent.match(/const questions = \[([\s\S]*?)\];/)
       if (scriptMatch) {
         try {
-          // Enhanced parsing for all quiz questions
+          // Simple and reliable parsing approach
           const questionsText = scriptMatch[1]
           console.log('Raw questions text length:', questionsText.length)
           
-          // Use a more sophisticated regex to match complete question objects
-          const questionRegex = /\{\s*question:\s*["']((?:[^"'\\]|\\.)*)["'],\s*options:\s*\[([\s\S]*?)\],\s*correct:\s*(\d+)\s*\}/g
-          
-          let match
-          let questionIndex = 0
-          
-          while ((match = questionRegex.exec(questionsText)) !== null) {
-            const questionText = match[1]
-            const optionsText = match[2]
-            const correct = parseInt(match[3])
+          // Try to parse as JavaScript to extract the questions array
+          try {
+            // Create a safe evaluation context
+            const questionsCode = `const questions = [${questionsText}]; questions;`
+            const questions = eval(questionsCode)
             
-            // Parse options more carefully - handle multi-line options
-            const options: string[] = []
-            let currentOption = ''
-            let inQuotes = false
-            let escapeNext = false
+            console.log(`Found ${questions.length} questions via eval`)
             
-            for (let i = 0; i < optionsText.length; i++) {
-              const char = optionsText[i]
-              
-              if (escapeNext) {
-                currentOption += char
-                escapeNext = false
-                continue
+            questions.forEach((question: any, index: number) => {
+              if (question.question && question.options && Array.isArray(question.options)) {
+                items.push({
+                  id: `quiz-question-${index}`,
+                  type: 'quiz',
+                  title: question.question,
+                  description: `תשובה נכונה: ${question.options[question.correct] || 'לא זוהתה'}`,
+                  category: 'שאלות מבחן',
+                  options: question.options,
+                  correct: question.correct || 0
+                })
               }
-              
-              if (char === '\\') {
-                escapeNext = true
-                continue
-              }
-              
-              if (char === '"' && !escapeNext) {
-                if (inQuotes) {
-                  // End of option
-                  if (currentOption.trim()) {
-                    options.push(currentOption.trim())
-                    currentOption = ''
-                  }
-                  inQuotes = false
-                } else {
-                  // Start of option
-                  inQuotes = true
-                }
-              } else if (inQuotes) {
-                currentOption += char
-              }
-            }
+            })
             
-            // Add the last option if it exists
-            if (currentOption.trim()) {
-              options.push(currentOption.trim())
-            }
+            console.log(`Successfully parsed ${questions.length} quiz questions`)
+          } catch (evalError) {
+            console.error('Eval failed, falling back to regex:', evalError)
             
-            if (questionText && options.length > 0) {
-              items.push({
-                id: `quiz-question-${questionIndex}`,
-                type: 'quiz',
-                title: questionText,
-                description: `תשובה נכונה: ${options[correct] || 'לא זוהתה'}`,
-                category: 'שאלות מבחן',
-                options,
-                correct
-              })
-              questionIndex++
-            }
+            // Fallback to simpler regex approach
+            const questionMatches = questionsText.match(/\{[^}]+question:[^}]+\}/g) || []
+            console.log(`Found ${questionMatches.length} question matches with fallback`)
+            
+            questionMatches.forEach((questionBlock, index) => {
+              const questionMatch = questionBlock.match(/question:\s*["']([^"']+)["']/)
+              const correctMatch = questionBlock.match(/correct:\s*(\d+)/)
+              
+              if (questionMatch) {
+                items.push({
+                  id: `quiz-question-${index}`,
+                  type: 'quiz',
+                  title: questionMatch[1],
+                  description: `שאלה ${index + 1}`,
+                  category: 'שאלות מבחן',
+                  options: ['אופציה 1', 'אופציה 2', 'אופציה 3', 'אופציה 4'],
+                  correct: correctMatch ? parseInt(correctMatch[1]) : 0
+                })
+              }
+            })
           }
-          
-          console.log(`Successfully parsed ${questionIndex} quiz questions`)
-          console.log('Sample questions:', items.filter(item => item.type === 'quiz').slice(0, 3))
         } catch (error) {
           console.error('Error parsing quiz questions:', error)
         }
@@ -633,9 +611,10 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       }
     )
 
-    // Add edit buttons to regular buttons
-    modifiedContent = modifiedContent.replace(
-      /<button([^>]*)>(.*?)<\/button>/g,
+    // Add edit buttons to regular buttons - but skip quiz.html
+    if (!content.includes('<title>בחן את עצמך') && !content.includes('quiz-container')) {
+      modifiedContent = modifiedContent.replace(
+        /<button([^>]*)>(.*?)<\/button>/g,
       (match, attributes, innerText) => {
         const idMatch = attributes.match(/id="([^"]*)"/)
         const id = idMatch ? idMatch[1] : null
@@ -688,9 +667,10 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         return match
       }
     )
+    }
 
     // Add edit buttons to styled button links (quiz-button, ready-button, etc.) - but skip quiz.html
-    if (!content.includes('<title>בחן את עצמך')) {
+    if (!content.includes('<title>בחן את עצמך') && !content.includes('quiz-container')) {
       modifiedContent = modifiedContent.replace(
         /<a([^>]*class="[^"]*(?:quiz-button|ready-button|category-btn|collapsible-button)[^"]*"[^>]*)>(.*?)<\/a>/g,
         (match, attributes, innerText) => {
