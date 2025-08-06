@@ -279,6 +279,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
       const buttonText = button.textContent?.trim() || ''
       const buttonHref = button.getAttribute('href') || ''
       const buttonOnclick = button.getAttribute('onclick') || ''
+      const buttonClass = button.getAttribute('class') || ''
       const buttonId = button.id || `button-${index}`
       
       if (buttonText && buttonText.length < 100) { // Skip very long text that's not really a button
@@ -286,12 +287,15 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         if (buttonHref) action = buttonHref
         else if (buttonOnclick) action = buttonOnclick
         
+        // Determine if this is a link-button or regular button
+        const isLinkButton = buttonHref && (buttonClass.includes('quiz-button') || buttonClass.includes('ready-button'))
+        
         items.push({
           id: buttonId,
-          type: 'button',
+          type: isLinkButton ? 'link' : 'button',
           title: buttonText,
-          description: action ? `כפתור עם פעולה: ${action}` : 'כפתור',
-          category: 'כפתורים',
+          description: action ? (isLinkButton ? `קישור ל: ${action}` : `כפתור עם פעולה: ${action}`) : 'כפתור',
+          category: isLinkButton ? 'קישורים' : 'כפתורים',
           url: action
         })
       }
