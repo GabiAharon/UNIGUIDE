@@ -288,7 +288,10 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         else if (buttonOnclick) action = buttonOnclick
         
         // Determine if this is a link-button or regular button
-        const isLinkButton = buttonHref && (buttonClass.includes('quiz-button') || buttonClass.includes('ready-button'))
+        const isLinkButton = buttonHref && buttonHref.length > 0 && 
+          (buttonClass.includes('quiz-button') || buttonClass.includes('ready-button') || 
+           buttonClass.includes('category-btn') || buttonHref.startsWith('http') || 
+           buttonHref.endsWith('.html'))
         
         items.push({
           id: buttonId,
@@ -1001,6 +1004,51 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         )
         onChange(updatedContent)
       }
+    } else if (editingItem.type === 'button' || editingItem.type === 'link') {
+      // Handle button and link updates
+      let updatedContent = content
+      
+      if (editingItem.type === 'button') {
+        // Update button text and onclick/href
+        const buttonRegex = new RegExp(`<button([^>]*id="${editingItem.id}"[^>]*)>([^<]*)</button>`, 'g')
+        const linkButtonRegex = new RegExp(`<a([^>]*id="${editingItem.id}"[^>]*)>([^<]*)</a>`, 'g')
+        
+        if (buttonRegex.test(content)) {
+          updatedContent = updatedContent.replace(buttonRegex, (match, attributes, oldText) => {
+            let newAttributes = attributes
+            if (editingItem.url) {
+              if (editingItem.url.startsWith('http') || editingItem.url.endsWith('.html')) {
+                // Convert to link
+                return `<a${attributes.replace('onclick="[^"]*"', '')} href="${editingItem.url}">${editingItem.title}</a>`
+              } else {
+                // Update onclick
+                newAttributes = attributes.replace(/onclick="[^"]*"/, `onclick="${editingItem.url}"`)
+              }
+            }
+            return `<button${newAttributes}>${editingItem.title}</button>`
+          })
+        } else if (linkButtonRegex.test(content)) {
+          updatedContent = updatedContent.replace(linkButtonRegex, (match, attributes, oldText) => {
+            let newAttributes = attributes
+            if (editingItem.url) {
+              newAttributes = attributes.replace(/href="[^"]*"/, `href="${editingItem.url}"`)
+            }
+            return `<a${newAttributes}>${editingItem.title}</a>`
+          })
+        }
+      } else if (editingItem.type === 'link') {
+        // Update link text and href
+        const linkRegex = new RegExp(`<a([^>]*id="${editingItem.id}"[^>]*)>([^<]*)</a>`, 'g')
+        updatedContent = updatedContent.replace(linkRegex, (match, attributes, oldText) => {
+          let newAttributes = attributes
+          if (editingItem.url) {
+            newAttributes = attributes.replace(/href="[^"]*"/, `href="${editingItem.url}"`)
+          }
+          return `<a${newAttributes}>${editingItem.title}</a>`
+        })
+      }
+      
+      onChange(updatedContent)
     } else {
       // Regular content item update
       let updatedContent = content
@@ -1339,15 +1387,27 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
               {(newItem.type === 'link' || newItem.type === 'button') && (
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">
-                    {newItem.type === 'link' ? 'קישור (URL)' : 'פעולה/קישור'}
+                    {newItem.type === 'link' ? 'קישור (URL)' : 
+                     (newItem.url && newItem.url.startsWith('showFAQ')) ? 'פעולת JavaScript' :
+                     (newItem.url && newItem.url.startsWith('toggle')) ? 'פעולת הצגה/הסתרה' :
+                     (newItem.url && (newItem.url.startsWith('http') || newItem.url.endsWith('.html'))) ? 'קישור (URL)' :
+                     'פעולה/קישור'}
                   </label>
                   <input
                     type="text"
                     value={newItem.url || ''}
                     onChange={(e) => setNewItem({...newItem, url: e.target.value})}
                     className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 bg-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                    placeholder={newItem.type === 'link' ? "https://example.com" : "onclick או href"}
+                    placeholder={newItem.type === 'link' ? "https://example.com" : 
+                                (newItem.url && newItem.url.startsWith('showFAQ')) ? "showFAQCategory('קטגוריה')" :
+                                (newItem.url && newItem.url.startsWith('toggle')) ? "toggleSection('section-id')" :
+                                "onclick או href"}
                   />
+                  {newItem.type === 'button' && newItem.url && newItem.url.startsWith('showFAQ') && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      💡 זהו כפתור הצגת קטגוריה. ניתן לשנות את שם הקטגוריה בתוך הסוגריים
+                    </p>
+                  )}
                 </div>
               )}
 
